@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: >
+    "Twitter Rekognition Kinesis Firehose \n"
+
+Parameters:
+  Bucket:  
+    Default: '{{resolve:ssm:/twitter-demo/bucket:1}}'
+    Type: String
+
+  AthDatabase:  
+    Default: twitter_data
+    Type: String
+
+  AthTable:  
+    Default: json_records
+    Type: String
+
+
+Resources:
+
+  DeliveryStreamParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /twitter-demo/deliverystream
+      Type: String
+      Value: !Ref TwitterDeliveryStream
+      Description: Kinesis Firehose Name
+
+  TwitterDeliveryStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    DependsOn:
+      - DeliveryStreamPolicy
+    Properties:
+      ExtendedS3DestinationConfiguration:
+        Prefix: parquet-!{timestamp:yyyy}/
+        ErrorOutputPrefix: FirehoseFailures/!{firehose:error-output-type}/!{timestamp:yyyy}
+        BucketARN: !Sub arn:aws:s3:::${Bucket}
+        RoleARN: !GetAtt DeliveryStreamRole.Arn
+        DataFormatConversionConfiguration:
+          Enabled: true
+          InputFormatConfiguration:
+            Deserializer: 
+              OpenXJsonSerDe: {}
+          OutputFormatConfiguration: 
+            Serializer:
+              ParquetSerDe: {}
+          SchemaConfiguration:
+              Region: !Sub ${AWS::Region}
+              RoleARN: !GetAtt DeliveryStreamRole.Arn
+              DatabaseName: !Ref AthDatabase
+              TableName: !Ref AthTable
+
+  DeliveryStreamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action: 'sts:AssumeRole'
+
+  DeliveryStreamPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      Roles:
+        - !Ref DeliveryStreamRole
+      PolicyName: firehose_delivery_policy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 's3:AbortMultipartUpload'
+              - 's3:GetBucketLocation'
+              - 's3:GetObject'
+              - 's3:ListBucket'
+              - 's3:ListBucketMultipartUploads'
+              - 's3:PutObject'
+            Resource:
+              - !Sub 'arn:aws:s3:::${Bucket}'
+              - !Join 
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref Bucket
+                  - '/*'
+          - Effect: Allow
+            Action:
+              - 'glue:Start*'
+              - 'glue:Stop*'
+              - 'glue:Create*'
+              - 'glue:Get*'
+              - 'glue:List*'
+              - 'glue:Search*'
+            Resource: '*'
