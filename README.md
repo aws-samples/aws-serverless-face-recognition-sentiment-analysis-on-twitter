@@ -1,4 +1,4 @@
-## Amazon Twitter Face Rekognition 
+## AWS Serverless face recognition sentiment analysis on twitter 
 
 <img src="images/twitter-app.png" alt="app" width="800"/>
 
