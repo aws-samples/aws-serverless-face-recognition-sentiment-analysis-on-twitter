@@ -4,13 +4,13 @@
 
 In this Serverless app we show a rank of the happiest, saddest among other emotions [Amazon Rekognition](https://aws.amazon.com/rekognition/) can detect from tweets that have the word "selfie" in it. The app relies on lambda functions that extract, process, store and report the information from the picture. It is important to note that Twitter is a public platform that does not moderate photos uploaded by its users. This demo uses the AWS Reckognition moderation feature, but occasionally inappropriate photos can appear. **Use at your own discretion**
 
-The Amazon S3 bucket of this solution creates contains two [Object lifecycle management](https://docs.aws.amazon.com/AmazonS3/latest/dev/object-lifecycle-mgmt.html) for the folders where the reports and records files are stored, which expire the files 7 days after of its creation. Similarly, the dynamoDb table that records all the images processed, expires the records after 7 days of its creation.  
+The Amazon S3 bucket of this solution creates contains two [Object lifecycle management](https://docs.aws.amazon.com/AmazonS3/latest/dev/object-lifecycle-mgmt.html) for the folders where the reports and records files are stored, which expire the files 2 days after of its creation. Similarly, the dynamoDb table that records all the images processed, expires the records after 2 days of its creation.  
 
 Below is the diagram for a depiction of the complete architecture.
 
 <img src="images/twitter-rekognition.png" alt="architecture" width="800"/>
 
-The solution also leverage the [Embedded Metric Format](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch_Embedded_Metric_Format_Specification.html) to create metrics for number of tweets that are being processed, number of images moderated and number of faces identified and processed. There isn't a direct correlations of numbers of tweets and faces processed as not all tweets' images have people, some images are moderated. In some cases one photo can contain more than 10 faces, so it is really impredictable. 
+The solution also leverage the [Embedded Metric Format](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch_Embedded_Metric_Format_Specification.html) to create metrics for number of tweets that are being processed, number of images moderated and number of faces identified and processed. There isn't a direct correlations of numbers of tweets and faces processed as not all tweets' images have people, some images are moderated. In some cases one photo can contain more than 10 faces, which makes it impredictable. 
 
 <img src="images/twitter-dashboard.png" alt="custommetric" width="800"/>
 
@@ -22,7 +22,7 @@ Another cool service used is [AWS X-Ray](https://aws.amazon.com/xray/) that allo
 
 ### Prerequisites
 
-The Twitter FaceRekognition app is deployed through CloudFormation with an additional Vue.js application configuration. The following resources are required to be installed:
+This app is deployed through AWS CloudFormation with an additional Vue.js application configuration. The following resources are required to be installed:
 
 - [aws SAM](https://aws.amazon.com/serverless/sam/) - A tool to abstract and simplify CloudFormation stack deployments
 - npm to be able to build the Vue.js app
@@ -33,32 +33,32 @@ The Twitter FaceRekognition app is deployed through CloudFormation with an addit
 
 1. The Twitter polling is based on the https://github.com/awslabs/aws-serverless-twitter-event-source. This lambda is responsible for connecting to twitter and pull the data to be processed. 
    
-These are  Twitter Source app initial setup. You can change those in the cloudformation template: 
-     - **SearchText** - *selfie* 
-     - **StreamModeEnabled** - *true*
-     - **PollingFrequencyInMinutes** - 10 min
-     - **BatchSize** - 15
-     - **TweetProcessorFunctionName** - The Parser's Lambda Function Arn.
+These are  Twitter Source app initial setup. You can change those in the CloudFormation template: 
+- **SearchText** - *selfie* 
+- **StreamModeEnabled** - *true*
+- **PollingFrequencyInMinutes** - 10 min
+- **BatchSize** - 15
+- **TweetProcessorFunctionName** - The Parser's Lambda Function Arn.
 
-2. The *Twitter event source* Lambda requires the following Twitter API Keys: Consumer Key (API Key), Consumer Secret (API Secret), Access Token, and Access Token Secret. The following steps walk you through registering the app with your Twitter account to create these values.
-  1. Create a Twitter account if you do not already have one
-  2. Register a new application with your Twitter account:
-    - Go to http://twitter.com/oauth_clients/new
-    - Click "Create New App"
-    - Under Name, enter something descriptive (but unique), e.g., aws-serverless-twitter-es
-    - Enter a description
-    - Under Website, you can enter https://github.com/awslabs/aws-serverless-twitter-event-source
-    - Leave Callback URL blank
-    - Read and agree to the Twitter Developer Agreement
-    - Click "Create your Twitter application"
-  3. (Optional, but recommended) Restrict the application permissions to read only
-    - From the detail page of your Twitter application, click the "Permissions" tab
-    - Under the "Access" section, make sure "Read only" is selected and click the "Update Settings" button
-  4. Generate an access token:
-    - From the detail page of your Twitter application, click the "Keys and Access Tokens" tab
-    - On this tab, you will already see the Consumer Key (API Key) and Consumer Secret (API Secret) values required by the app.
-    - Scroll down to the Access Token section and click "Create my access token"
-    - You will now have the Access Token and Access Token Secret values required by the app.
+2. The *Twitter event source* Lambda requires the following Twitter API Keys: Consumer Key (API Key, Consumer Secret (API Secret), Access Token, and Access Token Secret. The following steps walk you through registering the app with your Twitter account to create these values.
+   - Create a Twitter account if you do not already have one
+   - Register a new application with your Twitter account:
+     - Go to http://twitter.com/oauth_clients/new
+     - Click "Create New App"
+     - Under Name, enter something descriptive (but unique), e.g., aws-serverless-twitter-es
+     - Enter a description
+     - Under Website, you can enter https://github.com/awslabs/aws-serverless-twitter-event-source
+     - Leave Callback URL blank
+     - Read and agree to the Twitter Developer Agreement
+     - Click "Create your Twitter application"
+   - (Optional, but recommended) Restrict the application permissions to read only
+     - From the detail page of your Twitter application, click the "Permissions" tab
+     - Under the "Access" section, make sure "Read only" is selected and click the "Update Settings" button
+   - Generate an access token:
+     - From the detail page of your Twitter application, click the "Keys and Access Tokens" tab
+     - On this tab, you will already see the Consumer Key (API Key) and Consumer Secret (API Secret) values required by the app.
+     - Scroll down to the Access Token section and click "Create my access token"
+     - You will now have the Access Token and Access Token Secret values required by the app.
 
 
 3. The app expects to find the Twitter API keys as encrypted SecureString values in SSM Parameter Store. You can setup the required parameters via the AWS Console or using the following AWS CLI commands:
