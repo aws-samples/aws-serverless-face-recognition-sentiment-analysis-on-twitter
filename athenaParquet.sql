@@ -2,7 +2,7 @@ CREATE EXTERNAL TABLE `parquet_records`(
   `first_name` string, 
   `last_name` string, 
   `image_url` string, 
-  `guidstr` string, 
+  `tweet_id` string, 
   `gender` struct<value:string,confidence:double>, 
   `face_id` string, 
   `emotions` array<struct<type:string,confidence:double>>, 
@@ -23,7 +23,7 @@ STORED AS INPUTFORMAT
 OUTPUTFORMAT 
   'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
 LOCATION
-  's3://<app-bucket>/parquet-yyyy/'
+  's3://<app-bucket><parquet-directory>/'
 TBLPROPERTIES ('has_encrypted_data'='false',
 'classification'='parquet', 
 'compressionType'='none');

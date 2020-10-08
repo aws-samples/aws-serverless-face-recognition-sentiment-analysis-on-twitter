@@ -2,7 +2,7 @@ CREATE EXTERNAL TABLE `twitter_data`.`json_records`(
     `first_name` string COMMENT 'from deserializer', 
     `last_name` string COMMENT 'from deserializer', 
     `image_url` string COMMENT 'from deserializer', 
-    `guidstr` string COMMENT 'from deserializer', 
+    `tweet_id` string COMMENT 'from deserializer', 
     `gender` struct<value:string,confidence:double> COMMENT 'from deserializer', 
     `face_id` string COMMENT 'from deserializer', 
     `emotions` array<struct<type:string,confidence:double>> COMMENT 'from deserializer', 
@@ -25,5 +25,5 @@ CREATE EXTERNAL TABLE `twitter_data`.`json_records`(
     OUTPUTFORMAT 
       'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
     LOCATION
-      's3://<app-bucket>/json-records/'
+      's3://<app-bucket>/data/json-records/'
     TBLPROPERTIES ('has_encrypted_data'='false');

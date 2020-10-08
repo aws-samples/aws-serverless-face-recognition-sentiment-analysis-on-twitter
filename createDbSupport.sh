@@ -27,6 +27,8 @@ else
 fi
 
 BUCKET=$(aws cloudformation describe-stack-resource --stack-name $1 --logical-resource-id Bucket --query "StackResourceDetail.PhysicalResourceId" --output text)
+YEAR=$(date +'%Y')
+#PREFIX=$(aws s3api list-objects-v2 --bucket ${BUCKET} --prefix data --query 'Contents[?ends_with(Key, `/`)].[Key]' --output text | grep parquet | sed 's/\//\\\//g')
 echo -e "${YELLOW}-- BUCKET: ${WHITE}${BUCKET}${SET}"
 echo -e "-- Creating Athena Database"
 aws athena start-query-execution --query-string file://athenaDb.sql --query-execution-context Database="default" --result-configuration OutputLocation=s3://$BUCKET/ath-output
@@ -35,11 +37,8 @@ sed "s/<app-bucket>/${BUCKET}/" athenaTable.sql > athenaTable.json.sql
 aws athena start-query-execution --query-string file://athenaTable.json.sql --query-execution-context Database="twitter_data" --result-configuration OutputLocation=s3://$BUCKET/ath-output
 rm athenaTable.json.sql
 echo -e "-- Creating Athena Parquet Table"
-YEAR=$(date +'%Y')
-sed "s/<app-bucket>/${BUCKET}/" athenaParquet.sql > athenaParquet.tmp.sql
-sed "s/yyyy/${YEAR}/" athenaParquet.tmp.sql > athenaTable.pq.sql
-aws athena start-query-execution --query-string file://athenaTable.pq.sql --query-execution-context Database="twitter_data" --result-configuration OutputLocation=s3://$BUCKET/ath-output
+sed "s/<app-bucket><parquet-directory>/${BUCKET}\/data\/parquet-${YEAR}/" athenaParquet.sql > athenaParquet.tmp.sql
+aws athena start-query-execution --query-string file://athenaTable.tmp.sql --query-execution-context Database="twitter_data" --result-configuration OutputLocation=s3://$BUCKET/ath-output
 rm athenaParquet.tmp.sql
-rm athenaTable.pq.sql
 echo -e "-- Creating FireHose"
 aws cloudformation create-stack --stack-name twitter-firehose --template-body file://firehose.yaml --capabilities CAPABILITY_IAM --parameters ParameterKey=Bucket,ParameterValue=$BUCKET

@@ -5,11 +5,11 @@ import urllib
 import boto3
 import logging
 import base64
-import uuid
 import time
 import os
 import requests
 import random
+import uuid
 from datetime import datetime, timedelta
 from aws_embedded_metrics import metric_scope
 from PIL import Image
@@ -20,7 +20,6 @@ from aws_xray_sdk.core import patch_all
 patch_all()
 
 S3Bucket = os.getenv('Bucket')
-CollectionId = os.getenv('CollectionId')
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -112,14 +111,16 @@ def handler(event, context, metrics):
         fdata["first_name"] = 'NULL'
         fdata["last_name"] = 'NULL'
 
-        for face in identified_faces:                       
-            if (int(face["FaceDetail"]["Confidence"])) < 80:
+        for face in identified_faces:                     
+            if (int(face["Confidence"])) < 80:
                 face_not_identified_count = face_not_identified_count + 1
                 continue
 
-            xray_recorder.begin_subsegment('## FaceId: ' + str(face["Face"]["FaceId"]))
+            face_id = str(uuid.uuid4())
+            logger.info('## FaceId: ' + face_id)
+            xray_recorder.begin_subsegment('## FaceId: ' + face_id)
             
-            if str(face["FaceDetail"]["Gender"]["Value"]).lower() == "male":
+            if str(face["Gender"]["Value"]).lower() == "male":
                 fdata["first_name"] = random.choice(male_names)
             else:
                 fdata["first_name"] = random.choice(female_names)
@@ -133,18 +134,18 @@ def handler(event, context, metrics):
             
             fdata["image_url"] = event_data["image_url"]
             fdata["full_text"] = event_data["full_text"]
-            fdata["guidstr"] = event_data["guidstr"]
-            fdata["gender"] = face["FaceDetail"]["Gender"]
-            fdata["face_id"] = face["Face"]["FaceId"] 
-            fdata["emotions"] = face["FaceDetail"]["Emotions"]            
-            fdata["agerange"] = face["FaceDetail"]["AgeRange"]
+            fdata["tweet_id"] = event_data["tweet_id"]
+            fdata["gender"] = face["Gender"]
+            fdata["face_id"] = face_id
+            fdata["emotions"] = face["Emotions"]            
+            fdata["agerange"] = face["AgeRange"]
 
             # calculate the bounding boxes the detected face 
             r = requests.get(event_data["image_url"], allow_redirects=True)
             stream = BytesIO(r.content)
             image = Image.open(stream)
             imgWidth, imgHeight = image.size 
-            box = face["FaceDetail"]["BoundingBox"]
+            box = face["BoundingBox"]
             left = imgWidth * box['Left']
             top = imgHeight * box['Top']
             width = imgWidth * box['Width']
@@ -159,7 +160,7 @@ def handler(event, context, metrics):
             fdata["updated_at"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
 
             faces_count = faces_count + 1
-            faces.append(face["Face"]["FaceId"])
+            faces.append(face_id)
 
             if imgWidth < 500:
                 low_res_count = low_res_count + 1
@@ -167,8 +168,8 @@ def handler(event, context, metrics):
                 continue
 
             if len(event_data) > 2:
-                file_name = str(face["Face"]["FaceId"]) + '.json'
-                key = "json-records/" + file_name  
+                file_name = face_id + '.json'
+                key = "data/json-records/" + file_name  
                 logger.info(fdata)
                 s3.put_object(
                     ACL='private',
@@ -186,12 +187,6 @@ def handler(event, context, metrics):
                     )  
                         
                 xray_recorder.end_subsegment()
-
-        if (len(faces) > 0):
-            response = rek.delete_faces(
-                CollectionId=CollectionId,
-                FaceIds=faces
-            )
         
         if (len(identified_faces) > 0):
             metrics.set_namespace('TwitterRekognition')

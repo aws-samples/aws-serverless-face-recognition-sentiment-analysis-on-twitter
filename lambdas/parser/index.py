@@ -39,14 +39,14 @@ def GetImage(url):
         return {'Items': [], 'Count': 0}
 
 @xray_recorder.capture('## AddDynamo')            
-def AddImage(url,filename):
+def AddImage(url,tweet_id):
     try:
         epoch = datetime.utcfromtimestamp(0)
         epochexp = (datetime.now()+timedelta(days=15) - epoch).total_seconds() * 1000.0
         response = dyn_table.put_item(
         Item={
             'img_url': str(url),
-            'filename': filename,
+            'tweet_id': tweet_id,
             'expire_at': int(epochexp)
             }
         )
@@ -61,10 +61,10 @@ def CallStepFunction(tweet):
     client = boto3.client('stepfunctions') 
     response = client.start_execution(
         stateMachineArn=StateMachineArn,
-        name=tweet["guidstr"],
+        name=tweet["tweet_id"],
         input=json.dumps(tweet)
     )
-    AddImage(tweet["image_url"],tweet["guidstr"]+".csv")
+    AddImage(tweet["image_url"],tweet["tweet_id"])
     #logger.info(json.dumps(hdata))    
 
 @metric_scope
@@ -81,7 +81,7 @@ def handler(event, context, metrics):
                             dyn_resp = GetImage(m["media_url_https"])
                             if dyn_resp["Count"] == 0:
                                 processed_count += 1
-                                CallStepFunction({'guidstr': m["id_str"], 'full_text': rec["full_text"], 'image_url': m["media_url_https"]})
+                                CallStepFunction({'tweet_id': m["id_str"], 'full_text': rec["full_text"], 'image_url': m["media_url_https"]})
                             else:
                                 skipped_count += 1                            
                         else:

@@ -3,11 +3,6 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
     "Twitter Rekognition Demo - Lambdas \n"
 
-Parameters:
-  CollectionId:  
-    Default: twitter-selfie
-    Type: String
-
 Globals:
   Function:
     AutoPublishAlias: live
@@ -29,15 +24,11 @@ Resources:
           - Id: DeleteRecordsAfter2Days
             ExpirationInDays: 2
             Status: Enabled
-            Prefix: "json-records"
+            Prefix: "data"
           - Id: DeleteAthenaReportsAfter2Days
             ExpirationInDays: 2
             Status: Enabled
             Prefix: "twitter-ath-results"
-          - Id: DeleteParquetAfter2Days
-            ExpirationInDays: 2
-            Status: Enabled
-            Prefix: "parquet*"
 
   BucketParameter:
     Type: AWS::SSM::Parameter
@@ -220,7 +211,6 @@ Resources:
       Environment:
         Variables:
           Bucket: !Ref Bucket
-          CollectionId: !Ref CollectionId     
       Policies:
         - S3CrudPolicy:
             BucketName:
@@ -237,7 +227,6 @@ Resources:
       Environment:
         Variables:
           Bucket: !Ref Bucket
-          CollectionId: !Ref CollectionId
       Policies:
         - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
         - SSMParameterReadPolicy:
@@ -248,9 +237,6 @@ Resources:
         - S3CrudPolicy:
             BucketName:
               !Ref Bucket
-        - RekognitionFacesManagementPolicy:
-            CollectionId:
-                !Ref CollectionId
 
   StateMachine:
     Type: AWS::StepFunctions::StateMachine
@@ -274,6 +260,11 @@ Resources:
                       "Variable": "$.result",
                       "StringEquals": "Succeed",
                       "Next": "ProcessFaces"
+                    },
+                    {
+                      "Variable": "$.result",
+                      "StringEquals": "Moderated",
+                      "Next": "ModerateState"
                     },
                     {
                       "Variable": "$.result",
@@ -313,6 +304,9 @@ Resources:
                   "Type": "Fail",
                   "Error": "DefaultStateError",
                   "Cause": "No Matches!"
+                },
+                "ModerateState": {
+                  "Type": "Succeed"
                 },
                 "SucceedState": {
                   "Type": "Succeed"

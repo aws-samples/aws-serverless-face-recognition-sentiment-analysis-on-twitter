@@ -33,8 +33,8 @@ Resources:
       - DeliveryStreamPolicy
     Properties:
       ExtendedS3DestinationConfiguration:
-        Prefix: parquet-!{timestamp:yyyy}/
-        ErrorOutputPrefix: FirehoseFailures/!{firehose:error-output-type}/!{timestamp:yyyy}
+        Prefix: data/parquet-!{timestamp:yyyy}/
+        ErrorOutputPrefix: FirehoseFailures/!{firehose:error-output-type}/!{firehose:random-string}/
         BucketARN: !Sub arn:aws:s3:::${Bucket}
         RoleARN: !GetAtt DeliveryStreamRole.Arn
         DataFormatConversionConfiguration:
