@@ -95,11 +95,9 @@ def handler(event, context, metrics):
 
 
     metrics.set_namespace('TwitterRekognition')
-    metrics.put_dimensions({"step": "Parser"})
     metrics.put_metric("TweetsProcessed", len(event), "Count")
     metrics.put_metric("ImagesIdentified", processed_count, "Count")
     metrics.set_property("RequestId", context.aws_request_id)
-    metrics.set_property("LambdaName", context.function_name)
     metrics.set_property(
         "payload", { "tweets": str(len(event)) ,"processed": processed_count, "skipped": skipped_count, "no_image": no_image }
     )

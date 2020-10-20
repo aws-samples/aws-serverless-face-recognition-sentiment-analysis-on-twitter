@@ -24,7 +24,7 @@ export default {
     return {
         baseUrl: process.env.VUE_APP_AWS_API_URL
     };
-  }
+  },
 };
 </script>
 

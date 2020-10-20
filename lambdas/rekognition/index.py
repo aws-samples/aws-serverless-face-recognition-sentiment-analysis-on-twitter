@@ -66,10 +66,8 @@ def handler(event, context, metrics):
 
     if len(mod_response["ModerationLabels"]) != 0:
         metrics.set_namespace('TwitterRekognition')
-        metrics.put_dimensions({"step": "Rekognition"})
         metrics.put_metric("ImagesModerated", 1, "Count")
-        metrics.set_property("RequestId", context.aws_request_id)
-        metrics.set_property("LambdaName", context.function_name)
+        metrics.set_property("RequestId", context.aws_request_id)        
         metrics.set_property("Labels", mod_response["ModerationLabels"])
         return {'result': 'Moderated' }
 

@@ -130,6 +130,35 @@ Resources:
         Variables:
           StateMachineArn: !Ref StateMachine
           DdbImageTable: !Ref DdbImageTable
+          
+
+  GetStat:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: ./lambdas/getstat/
+      Events:
+        ExplicitApi: # warning: creates a public endpoint
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /stat
+            TimeoutInMillis: 29000
+            PayloadFormatVersion: "2.0"
+            RouteSettings:
+              ThrottlingBurstLimit: 100
+      Policies:
+        - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
+        - arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess
+        - SSMParameterReadPolicy:
+            ParameterName: "twitter-demo*"
+      Environment:
+        Variables:
+          ParserLambdaName: !Ref Parser
+          AthQueryLambdaName: !Ref AthenaQuery
+          ProcessFacesLambdaName: !Ref ProcessFaces
+          RekognitionLambdaName: !Ref Rekognition
+
 
   AthenaQuery:
     Type: AWS::Serverless::Function 

@@ -190,10 +190,8 @@ def handler(event, context, metrics):
         
         if (len(identified_faces) > 0):
             metrics.set_namespace('TwitterRekognition')
-            metrics.put_dimensions({"step": "ProcessFaces"})
             metrics.put_metric("FacesProcessed", faces_count, "Count")
-            metrics.set_property("RequestId", context.aws_request_id)
-            metrics.set_property("LambdaName", context.function_name)
+            metrics.set_property("RequestId", context.aws_request_id)            
             metrics.set_property(
                 "payload", { "processed": faces_count, "low_res": low_res_count, "face_not_identified_count": face_not_identified_count }
             )

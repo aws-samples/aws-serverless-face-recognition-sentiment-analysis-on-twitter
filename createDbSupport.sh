@@ -38,7 +38,7 @@ aws athena start-query-execution --query-string file://athenaTable.json.sql --qu
 rm athenaTable.json.sql
 echo -e "-- Creating Athena Parquet Table"
 sed "s/<app-bucket><parquet-directory>/${BUCKET}\/data\/parquet-${YEAR}/" athenaParquet.sql > athenaParquet.tmp.sql
-aws athena start-query-execution --query-string file://athenaTable.tmp.sql --query-execution-context Database="twitter_data" --result-configuration OutputLocation=s3://$BUCKET/ath-output
+aws athena start-query-execution --query-string file://athenaParquet.tmp.sql --query-execution-context Database="twitter_data" --result-configuration OutputLocation=s3://$BUCKET/ath-output
 rm athenaParquet.tmp.sql
 echo -e "-- Creating FireHose"
 aws cloudformation create-stack --stack-name twitter-firehose --template-body file://firehose.yaml --capabilities CAPABILITY_IAM --parameters ParameterKey=Bucket,ParameterValue=$BUCKET
