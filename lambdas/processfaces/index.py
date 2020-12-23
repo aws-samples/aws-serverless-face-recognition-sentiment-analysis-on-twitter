@@ -71,7 +71,6 @@ def GetSentiment(tweet_text, language_code):
         logger.error('Something went wrong: ' + str(e))
         return 'Unknow'
 
-
 def GetSsmParam(paramKey, isEncrypted):
     try:
         ssmResult = ssm.get_parameter(
@@ -99,7 +98,13 @@ def handler(event, context, metrics):
 
 
         # If Firehose is implemented get its name
-        FireHoseName = GetSsmParam('/twitter-demo/deliverystream', False)           
+        FireHoseNameValue = GetSsmParam('/twitter-demo/deliverystream', False)
+
+        if ('arn:' in FireHoseNameValue):
+            x = FireHoseNameValue.split('/')
+            FireHoseName = x[1]
+        else:
+            FireHoseName = FireHoseNameValue        
 
         faces_count = 0
         low_res_count = 0

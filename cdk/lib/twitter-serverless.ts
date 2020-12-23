@@ -7,6 +7,7 @@ import { CfnApplication } from '@aws-cdk/aws-sam';
 import * as sfn from '@aws-cdk/aws-stepfunctions';
 import * as tasks from '@aws-cdk/aws-stepfunctions-tasks';
 import * as lambda from '@aws-cdk/aws-lambda';
+import * as fs from 'fs';
 //import * as ssm from '@aws-cdk/aws-ssm';
 
 export interface TwServerlessProps extends cdk.NestedStackProps {
@@ -22,6 +23,7 @@ export class TwServerless extends cdk.NestedStack {
   readonly rekognitionFunction: lambda.Function;
   readonly processFacesFunction: lambda.Function;
   readonly statFunction: lambda.Function;
+  readonly api: apiGw.RestApi;
 
   constructor(scope: cdk.Construct, id: string, props: TwServerlessProps ) {
     super(scope, id, props);
@@ -88,9 +90,16 @@ export class TwServerless extends cdk.NestedStack {
     });
 
     // API Gatewat Root
-     const api = new apiGw.RestApi(this, 'twitterApi', {
+    this.api = new apiGw.RestApi(this, 'twitterApi', {
        restApiName: 'twitter Demo Api'
      });
+
+    // Saving API Endpoint into a .env file            
+    // fs.writeFile('../vue-app/.env', "VUE_APP_AWS_API_URL=https://" + this.api.restApiId.toLowerCase() + ".execute-api." + process.env.CDK_DEFAULT_REGION + ".amazonaws.com", function (err) {
+    //   if (err) {
+    //     process.stdout.write(err.message);
+    //   }
+    // });
 
     // Lambda Layer
     const layer = new lambda.LayerVersion(this, 'CoreLayer', {
@@ -172,7 +181,7 @@ export class TwServerless extends cdk.NestedStack {
     props.s3Bucket.grantReadWrite(this.getImageFunction)
     this.athenaQueryFunction.grantInvoke(this.getImageFunction)
 
-    const getImageApi = api.root.addResource('image');
+    const getImageApi = this.api.root.addResource('image');
     const getImageFunctionIntegration = new apiGw.LambdaIntegration(this.getImageFunction);
     getImageApi.addMethod('GET', getImageFunctionIntegration);
 
@@ -246,9 +255,11 @@ export class TwServerless extends cdk.NestedStack {
     })
     this.statFunction.currentVersion.addAlias('live');
 
-    const statApi = api.root.addResource('stat');
+    const statApi = this.api.root.addResource('stat');
     const statFunctionIntegration = new apiGw.LambdaIntegration(this.statFunction);
-    statApi.addMethod('GET', statFunctionIntegration)
+    statApi.addMethod('GET', statFunctionIntegration)    
+
+    new cdk.CfnOutput(this, 'API_URL', {  value: this.api.url });
 
     // Serverless Application Repository    
     const tweetSource = new CfnApplication(this, 'tweetSource', {
