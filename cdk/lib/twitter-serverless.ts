@@ -7,7 +7,6 @@ import { CfnApplication } from '@aws-cdk/aws-sam';
 import * as sfn from '@aws-cdk/aws-stepfunctions';
 import * as tasks from '@aws-cdk/aws-stepfunctions-tasks';
 import * as lambda from '@aws-cdk/aws-lambda';
-import * as fs from 'fs';
 //import * as ssm from '@aws-cdk/aws-ssm';
 
 export interface TwServerlessProps extends cdk.NestedStackProps {
@@ -28,15 +27,15 @@ export class TwServerless extends cdk.NestedStack {
   constructor(scope: cdk.Construct, id: string, props: TwServerlessProps ) {
     super(scope, id, props);
   
+    //arn:aws:ssm:us-west-2:00000000:parameter/twitter-demo/deliverystream
     const ssmReadPolicy = new iam.PolicyStatement()
     ssmReadPolicy.addActions("ssm:GetParameters")
     ssmReadPolicy.addActions("ssm:GetParameter")
     ssmReadPolicy.addActions("ssm:GetParametersByPath")
-     ssmReadPolicy.addResources(this.formatArn({
+    ssmReadPolicy.addResources(this.formatArn({
        service: 'ssm',
-       resource: 'parameter',
-       sep: ':',
-       resourceName: 'twitter*'
+       resource: 'parameter/twitter*',
+       sep: ':'
      }
     ));
 
@@ -77,6 +76,17 @@ export class TwServerless extends cdk.NestedStack {
     comprehendPolicy.addActions("comprehend:BatchDetectSentiment")
     comprehendPolicy.addAllResources()
 
+    const kinesisPolicy = new iam.PolicyStatement()
+    kinesisPolicy.addActions("firehose:PutRecord")
+    kinesisPolicy.addActions("firehose:PutRecordBatch")
+    kinesisPolicy.addResources(this.formatArn({
+      service: 'firehose',
+      resource: 'deliverystream/TwitterStack*',
+      sep: ':'
+    }
+   ));
+
+
      // DynamoDB
      const ddbImageTable = new Table(this, 'ddbImageTable', {
       partitionKey: {
@@ -93,13 +103,6 @@ export class TwServerless extends cdk.NestedStack {
     this.api = new apiGw.RestApi(this, 'twitterApi', {
        restApiName: 'twitter Demo Api'
      });
-
-    // Saving API Endpoint into a .env file            
-    // fs.writeFile('../vue-app/.env', "VUE_APP_AWS_API_URL=https://" + this.api.restApiId.toLowerCase() + ".execute-api." + process.env.CDK_DEFAULT_REGION + ".amazonaws.com", function (err) {
-    //   if (err) {
-    //     process.stdout.write(err.message);
-    //   }
-    // });
 
     // Lambda Layer
     const layer = new lambda.LayerVersion(this, 'CoreLayer', {
@@ -161,6 +164,7 @@ export class TwServerless extends cdk.NestedStack {
     props.s3Bucket.grantReadWrite(this.processFacesFunction)
     this.processFacesFunction.addToRolePolicy(ssmReadPolicy);
     this.processFacesFunction.addToRolePolicy(comprehendPolicy);
+    this.processFacesFunction.addToRolePolicy(kinesisPolicy);
 
     // Lambda getImage
     this.getImageFunction = new lambda.Function(this, 'getImage', {
