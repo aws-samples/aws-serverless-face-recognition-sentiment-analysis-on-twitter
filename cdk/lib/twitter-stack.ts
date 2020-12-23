@@ -35,6 +35,7 @@ export class TwitterStack extends cdk.Stack {
       athenaQueryFunction: twServerless.athenaQueryFunction
     });
 
+    new cdk.CfnOutput(this, 'API_URL', {  value: twServerless.api.url });
 
   }
 }

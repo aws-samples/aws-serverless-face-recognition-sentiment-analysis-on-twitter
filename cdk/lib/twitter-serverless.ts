@@ -36,7 +36,7 @@ export class TwServerless extends cdk.NestedStack {
        service: 'ssm',
        resource: 'parameter',
        sep: ':',
-       resourceName: 'twitter-demo*'
+       resourceName: 'twitter*'
      }
     ));
 
@@ -207,13 +207,13 @@ export class TwServerless extends cdk.NestedStack {
       .when(sfn.Condition.stringEquals('$.result', 'Fail'), failState)
       .when(sfn.Condition.stringEquals('$.result', 'Succeed'), ProcessFacesJob.next(
         new sfn.Choice(this, 'FacesErrorHandler')
-          .when(sfn.Condition.stringEquals('$.result', 'Moderated'), successState)
+          .when(sfn.Condition.stringEquals('$.result', 'Succeed'), successState)
           .when(sfn.Condition.stringEquals('$.result', 'Fail'), failState)
           .otherwise(failState)
           ))
       .otherwise(failState));
 
-    const stateMachinen = new sfn.StateMachine(this, 'StateMachine', {
+    const stateMachine = new sfn.StateMachine(this, 'StateMachine', {
         definition,
         timeout: cdk.Duration.minutes(5)
     });
@@ -228,14 +228,15 @@ export class TwServerless extends cdk.NestedStack {
       timeout: cdk.Duration.seconds(120),
       layers: [layer],
       environment: {
-        StateMachineArn: stateMachinen.stateMachineArn,
+        StateMachineArn: stateMachine.stateMachineArn,
         DdbImageTable: ddbImageTable.tableName
       }
     })    
     this.parseFunction.currentVersion.addAlias('live');
     this.parseFunction.addToRolePolicy(ssmReadPolicy);
-    props.s3Bucket.grantReadWrite(this.parseFunction)
-    ddbImageTable.grantReadWriteData(this.parseFunction)
+    props.s3Bucket.grantReadWrite(this.parseFunction);
+    ddbImageTable.grantReadWriteData(this.parseFunction);
+    stateMachine.grantStartExecution(this.parseFunction);
 
     // Lambda Stat
     this.statFunction = new lambda.Function(this, 'stat', {
