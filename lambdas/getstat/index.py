@@ -44,6 +44,11 @@ metricWidget =  {
     "end": "P0D"
 }
 
+def _response_proxy(status_code, body, headers={}):
+    if bool(headers): # Return True if dictionary is not empty
+        return {"statusCode": status_code, "body": json.dumps(body), "headers": headers}
+    else:
+        return {"statusCode": status_code, "body": json.dumps(body)}
 
 def GetMetric(lambdaName, metricName, daysDelta):
 
@@ -124,9 +129,15 @@ def handler(event, context):
         
         raw_data = { 'TweetsProcessed' : TweetsProcessed, 'ImagesIdentified': ImagesIdentified, 'FacesProcessed': FacesProcessed, 'ImagesModerated': ImagesModerated, 
         'MetricWidgetImage': base64_string }
-
-        return json.dumps(raw_data)
+        
+        headers = {
+           'Content-Type': 'application/json', 
+           'Access-Control-Allow-Origin': '*' 
+        }
+        
+        return _response_proxy(200, raw_data, headers)
 
     except Exception as e:
         logger.error('Something went wrong: ' + str(e))
-        return {'result': False, 'msg': str(e)}
+        resp = {'result': False, 'msg': str(e)}
+        return _response_proxy(500,resp)

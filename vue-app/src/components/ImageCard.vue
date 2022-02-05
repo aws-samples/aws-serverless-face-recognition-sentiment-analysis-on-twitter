@@ -52,7 +52,7 @@ export default {
   },
   async mounted() {
     try {
-          await this.$http.get(this.baseUrl + "/image?emotion=" + this.emotion).then(results => { 
+          await this.$http.get(this.baseUrl + "image?emotion=" + this.emotion).then(results => { 
           this.tweet = results.data
           this.loading = false
           this.renderImages(this.tweet);

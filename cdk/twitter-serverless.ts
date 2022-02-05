@@ -1,15 +1,16 @@
-import * as cdk from '@aws-cdk/core'
-import * as apiGw from "@aws-cdk/aws-apigateway"
-import * as iam from "@aws-cdk/aws-iam";
-import { Table, AttributeType, BillingMode } from '@aws-cdk/aws-dynamodb';
-import * as s3 from '@aws-cdk/aws-s3';
-import { CfnApplication } from '@aws-cdk/aws-sam';
-import * as sfn from '@aws-cdk/aws-stepfunctions';
-import * as tasks from '@aws-cdk/aws-stepfunctions-tasks';
-import * as lambda from '@aws-cdk/aws-lambda';
-//import * as ssm from '@aws-cdk/aws-ssm';
+import * as cdk from 'aws-cdk-lib';
+import { Construct } from 'constructs';
+import * as s3 from "aws-cdk-lib/aws-s3";
+import * as iam from "aws-cdk-lib/aws-iam";
 
-export interface TwServerlessProps extends cdk.NestedStackProps {
+import * as apiGw from "aws-cdk-lib/aws-apigateway"
+import { Table, AttributeType, BillingMode } from 'aws-cdk-lib/aws-dynamodb';
+import { CfnApplication } from 'aws-cdk-lib/aws-sam';
+import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
+import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+
+export interface TwServerlessProps extends cdk.NestedStackProps  {
   /** the function for which we want to count url hits **/
   readonly s3Bucket: s3.Bucket
 }
@@ -24,68 +25,99 @@ export class TwServerless extends cdk.NestedStack {
   readonly statFunction: lambda.Function;
   readonly api: apiGw.RestApi;
 
-  constructor(scope: cdk.Construct, id: string, props: TwServerlessProps ) {
+  constructor(scope: Construct, id: string, props: TwServerlessProps ) {
     super(scope, id, props);
   
-    //arn:aws:ssm:us-west-2:00000000:parameter/twitter-demo/deliverystream
-    const ssmReadPolicy = new iam.PolicyStatement()
-    ssmReadPolicy.addActions("ssm:GetParameters")
-    ssmReadPolicy.addActions("ssm:GetParameter")
-    ssmReadPolicy.addActions("ssm:GetParametersByPath")
-    ssmReadPolicy.addResources(this.formatArn({
-       service: 'ssm',
-       resource: 'parameter/twitter*',
-       sep: ':'
-     }
-    ));
+    const ssmReadPolicy = new iam.PolicyStatement({
+        actions: [
+          'ssm:GetParameters',
+          'ssm:GetParameter',
+          'ssm:GetParametersByPath'
+        ],
+        resources: [this.formatArn({
+          service: 'ssm',
+          resource: 'parameter/twitter*'
+        })]
+    });
 
-    const rekReadPolicy = new iam.PolicyStatement()
-    rekReadPolicy.addActions("rekognition:CompareFaces")
-    rekReadPolicy.addActions("rekognition:DetectFaces")
-    rekReadPolicy.addActions("rekognition:DetectLabels")
-    rekReadPolicy.addActions("rekognition:ListCollections")
-    rekReadPolicy.addActions("rekognition:ListFaces")
-    rekReadPolicy.addActions("rekognition:SearchFaces")
-    rekReadPolicy.addActions("rekognition:SearchFacesByImage")
-    rekReadPolicy.addActions("rekognition:DetectText")
-    rekReadPolicy.addActions("rekognition:GetCelebrityInfo")
-    rekReadPolicy.addActions("rekognition:RecognizeCelebrities")
-    rekReadPolicy.addActions("rekognition:DetectModerationLabels")
-    rekReadPolicy.addActions("rekognition:GetLabelDetection")
-    rekReadPolicy.addActions("rekognition:GetFaceDetection")
-    rekReadPolicy.addActions("rekognition:GetContentModeration")
-    rekReadPolicy.addActions("rekognition:GetPersonTracking")
-    rekReadPolicy.addActions("rekognition:GetCelebrityRecognition")
-    rekReadPolicy.addActions("rekognition:GetFaceSearch")
-    rekReadPolicy.addActions("rekognition:GetTextDetection")
-    rekReadPolicy.addActions("rekognition:DescribeStreamProcessor")
-    rekReadPolicy.addActions("rekognition:ListStreamProcessors")
-    rekReadPolicy.addActions("rekognition:DescribeProjects")
-    rekReadPolicy.addActions("rekognition:DescribeProjectVersions")
-    rekReadPolicy.addActions("rekognition:DetectCustomLabels")
-    rekReadPolicy.addAllResources()
+    const athenaPolicy = new iam.PolicyStatement({
+        actions: ["athena:StartQueryExecution",
+                  "athena:Get*",
+                  "athena:List*",
+                  "athena:BatchGetNamedQuery",
+                  "athena:RunQuery",
+                  "athena:BatchGetQueryExecution",
+                  "glue:Get*",
+                  "glue:List*"],
+        resources: ['*'],
+    });
 
-    const comprehendPolicy = new iam.PolicyStatement()
-    comprehendPolicy.addActions("comprehend:BatchDetectKeyPhrases")
-    comprehendPolicy.addActions("comprehend:DetectDominantLanguage")
-    comprehendPolicy.addActions("comprehend:DetectEntities")
-    comprehendPolicy.addActions("comprehend:BatchDetectEntities")
-    comprehendPolicy.addActions("comprehend:DetectKeyPhrases")
-    comprehendPolicy.addActions("comprehend:DetectSentiment")
-    comprehendPolicy.addActions("comprehend:BatchDetectDominantLanguage")
-    comprehendPolicy.addActions("comprehend:BatchDetectSentiment")
-    comprehendPolicy.addAllResources()
+    const gluePolicy = new iam.PolicyStatement({
+      actions: ["glue:BatchGetPartition",
+                "glue:GetPartition",
+                "glue:GetPartitions",
+                "glue:GetTable",
+                "glue:GetTables",
+                "glue:GetTableVersion",
+                "glue:GetTableVersions"],
+      resources: [this.formatArn({
+        service: 'glue',
+        resource: 'table/twitter*'
+      })],
+    });
 
-    const kinesisPolicy = new iam.PolicyStatement()
-    kinesisPolicy.addActions("firehose:PutRecord")
-    kinesisPolicy.addActions("firehose:PutRecordBatch")
-    kinesisPolicy.addResources(this.formatArn({
-      service: 'firehose',
-      resource: 'deliverystream/TwitterStack*',
-      sep: ':'
-    }
-   ));
+    const cloudwatchPolicy = new iam.PolicyStatement({
+        actions: ["cloudwatch:Get*"],
+        resources: ['*'],
+    });
 
+    const rekReadPolicy = new iam.PolicyStatement({
+        actions: ["rekognition:CompareFaces",
+        "rekognition:DetectFaces",
+        "rekognition:DetectLabels",
+        "rekognition:ListCollections",
+        "rekognition:ListFaces",
+        "rekognition:SearchFaces",
+        "rekognition:SearchFacesByImage",
+        "rekognition:DetectText",
+        "rekognition:GetCelebrityInfo",
+        "rekognition:RecognizeCelebrities",
+        "rekognition:DetectModerationLabels",
+        "rekognition:GetLabelDetection",
+        "rekognition:GetFaceDetection",
+        "rekognition:GetContentModeration",
+        "rekognition:GetPersonTracking",
+        "rekognition:GetCelebrityRecognition",
+        "rekognition:GetFaceSearch",
+        "rekognition:GetTextDetection",
+        "rekognition:DescribeStreamProcessor",
+        "rekognition:ListStreamProcessors",
+        "rekognition:DescribeProjects",
+        "rekognition:DescribeProjectVersions",
+        "rekognition:DetectCustomLabels"],
+        resources: ['*'],
+    });
+    
+    const comprehendPolicy = new iam.PolicyStatement({
+      actions: ["comprehend:BatchDetectKeyPhrases",
+        "comprehend:DetectDominantLanguage",
+        "comprehend:DetectEntities",
+        "comprehend:BatchDetectEntities",
+        "comprehend:DetectKeyPhrases",
+        "comprehend:DetectSentiment",
+        "comprehend:BatchDetectDominantLanguage",
+        "comprehend:BatchDetectSentiment"],
+        resources: ['*']
+    });        
+
+    const kinesisPolicy = new iam.PolicyStatement({
+      actions: ["firehose:PutRecord",
+                "firehose:PutRecordBatch"],
+      resources: [this.formatArn({
+        service: 'firehose',
+        resource: 'deliverystream/TwitterStack*'
+      })]
+    });
 
      // DynamoDB
      const ddbImageTable = new Table(this, 'ddbImageTable', {
@@ -101,7 +133,10 @@ export class TwServerless extends cdk.NestedStack {
 
     // API Gatewat Root
     this.api = new apiGw.RestApi(this, 'twitterApi', {
-       restApiName: 'twitter Demo Api'
+       restApiName: 'twitter Demo Api',
+       defaultCorsPreflightOptions: {
+        allowOrigins: apiGw.Cors.ALL_ORIGINS,
+      },
      });
 
     // Lambda Layer
@@ -118,7 +153,7 @@ export class TwServerless extends cdk.NestedStack {
       handler: "index.handler",
       runtime: lambda.Runtime.PYTHON_3_7,
       tracing: lambda.Tracing.ACTIVE,      
-      memorySize: 256,
+      memorySize: 256,      
       timeout: cdk.Duration.seconds(120),
       layers: [layer],
       environment: {
@@ -126,8 +161,10 @@ export class TwServerless extends cdk.NestedStack {
       }
     })
     this.athenaQueryFunction.currentVersion.addAlias('live');
-    props.s3Bucket.grantReadWrite(this.athenaQueryFunction)
+    props.s3Bucket.grantReadWrite(this.athenaQueryFunction);
     this.athenaQueryFunction.addToRolePolicy(ssmReadPolicy);
+    this.athenaQueryFunction.addToRolePolicy(athenaPolicy);
+    this.athenaQueryFunction.addToRolePolicy(gluePolicy);
 
     // Lambda Rekognition
     this.rekognitionFunction = new lambda.Function(this, 'recognition', {
@@ -182,6 +219,7 @@ export class TwServerless extends cdk.NestedStack {
     })
     this.getImageFunction.currentVersion.addAlias('live');
     this.getImageFunction.addToRolePolicy(ssmReadPolicy);
+    this.getImageFunction.addToRolePolicy(gluePolicy);
     props.s3Bucket.grantReadWrite(this.getImageFunction)
     this.athenaQueryFunction.grantInvoke(this.getImageFunction)
 
@@ -259,6 +297,8 @@ export class TwServerless extends cdk.NestedStack {
       }
     })
     this.statFunction.currentVersion.addAlias('live');
+    this.statFunction.addToRolePolicy(ssmReadPolicy);
+    this.statFunction.addToRolePolicy(cloudwatchPolicy);
 
     const statApi = this.api.root.addResource('stat');
     const statFunctionIntegration = new apiGw.LambdaIntegration(this.statFunction);

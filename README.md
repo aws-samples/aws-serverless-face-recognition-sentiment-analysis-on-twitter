@@ -20,10 +20,22 @@ Another cool service used is [AWS X-Ray](https://aws.amazon.com/xray/) that allo
 
 This app is deployed through AWS CloudFormation with an additional Vue.js application configuration. The following resources are required to be installed:
 
-- [aws SAM](https://aws.amazon.com/serverless/sam/) - A tool to abstract and simplify CloudFormation stack deployments
+- [aws CDK](https://docs.aws.amazon.com/cdk/v2/guide/home.html) - The AWS CDK lets you build reliable, scalable, cost-effective applications in the cloud with the considerable expressive power of a programming language.
 - npm to be able to build the Vue.js app
 - [aws cli](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) to be able to interact with the AWS resources
 - AWS Account and permissition to create the resources.
+
+## Installing and configuring AWS CDK
+
+The AWS CDK Toolkit is installed with the Node Package Manager. In most cases, we recommend installing it globally.
+```bash
+npm install -g aws-cdk
+```
+
+Deploying AWS CDK apps into an AWS environment (a combination of an AWS account and region) may require that you provision resources the AWS CDK needs to perform the deployment. These resources include an Amazon S3 bucket for storing files and IAM roles that grant permissions needed to perform deployments. The process of provisioning these initial resources is called [bootstrapping](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html).
+```bash
+cdk bootstrap
+```
 
 ### Step 1: Configure the Twitter API keys and the Twitter Event Source Lambda
 
@@ -65,33 +77,31 @@ aws ssm put-parameter --name /twitter-event-source/access_token --value <your ac
 aws ssm put-parameter --name /twitter-event-source/access_token_secret --value <your access token secret value> --type SecureString --overwrite
   ```
 
-### Step 2: Execute cnf-cli to deploy all resources required for the solution to work
+### Step 2: Deploy the solution using AWS CDK
 
-1. clone this repo and go to its directory
-2. Execute aws to package and deploy all resources based on the *tempate.yaml* file. The comand will create a bucket if SAM does not find an existent one.
+1. Clone this repo and go to the cdk directory
+2. Execute the following commands:
 ```bash
-sam package --s3-bucket <bucket> --output-template-file out.yaml
-sam deploy --template-file out.yaml --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --stack-name <stack name>
+npm install
+npm run build
+cdk synth
+cdk deploy
 ```
-1. Wait until you get the message:
+3. Wait until the Outputs:
 ```bash
-Successfully created/updated stack - <stack name>.
+Outputs:
+TwitterStack.ApiUrL = https://xxxxxxxxxx.execute-api.xx-xxxx-x.amazonaws.com/prod/
+TwitterStack.S3Bucket = twitterstack-xxxxxxxxxxxxxx
+Stack ARN:
+arn:aws:cloudformation:xx-xxxx-x:00000000000:stack/TwitterStack/80c7e670-858d-11ec-0000-0000000000
+
 ```
 
-### Step 3 : Create Amazon Athena Database, tables and Kinesis Firehose
+### Step 3: Deploy Vue.js app into S3
 
-1. The script below creates two Athena's tables: *json_records* and *parquet_records* at the *twitter_data* Athena database. These tables determine the schema used at the queries. It also outlines the data transformation from Json to Parquet during the Kinesis Firehose data ingestion.
+1. Go back to the repo base directory and executes the script to publish the Vue.js application into your bucket:
 ```bash
-./createDbSupport.sh <stack name>
-```
-
-:warning: **Important Note: Kinesis Firehose has a 300 seconds Buffer condition.** It means that after the data is processed by lambda, it takes 5 more minutes for you to see the Parquet data at the S3 bucket.
-
-### Step 4: Deploy Vue.js app into S3
-
-1. The script below executes all the steps to publish the Vue.js application into your bucket:
-```bash
-./appDeploy.sh <stack name>
+./appDeploy.sh 
 ```
 
 This step updates the code with the AWS resources that were created, compile and deploy the vue.js app into the bucket.

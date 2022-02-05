@@ -89,7 +89,7 @@ export default {
   },
   async mounted() {
     try {
-      await this.$http.get(this.baseUrl + "/stat").then((results) => {
+      await this.$http.get(this.baseUrl + "stat").then((results) => {
         this.tweetsProcessed = results.data.TweetsProcessed;
         this.imagesIdentified = results.data.ImagesIdentified;
         this.facesProcessed = results.data.FacesProcessed;

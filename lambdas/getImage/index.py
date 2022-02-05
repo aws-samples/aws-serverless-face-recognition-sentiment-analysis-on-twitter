@@ -22,6 +22,12 @@ logger.setLevel(logging.INFO)
 
 lambda_client = boto3.client('lambda')
 
+def _response_proxy(status_code, body, headers={}):
+    if bool(headers): # Return True if dictionary is not empty
+        return {"statusCode": status_code, "body": json.dumps(body), "headers": headers}
+    else:
+        return {"statusCode": status_code, "body": json.dumps(body)}
+
 def handler(event, context):
     try:   
         if 'emotion' not in event["queryStringParameters"]:
@@ -61,8 +67,16 @@ def handler(event, context):
         
         logger.info(data[0])
         
-        return data[0]
+        headers = {
+           'Content-Type': 'application/json', 
+           'Access-Control-Allow-Origin': '*' 
+        }
+        
+        return _response_proxy(200, data[0], headers)
+        
 
     except Exception as e:
         logger.error('Something went wrong: ' + str(e))
-        return {'result': False, 'msg': str(e)}
+        resp = {'result': False, 'msg': str(e)}
+        return _response_proxy(500,resp)
+        
