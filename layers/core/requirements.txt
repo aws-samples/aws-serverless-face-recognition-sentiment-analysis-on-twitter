@@ -1,0 +1,4 @@
+Pillow
+requests
+aws_xray_sdk
+aws_embedded_metrics
