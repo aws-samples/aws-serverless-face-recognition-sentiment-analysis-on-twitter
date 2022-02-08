@@ -44,7 +44,7 @@
         </q-card>
         <div class="row q-pa-md q-gutter-md">
         <q-card>
-           <apexchart ref="chart" height="300" :options="chartOptions" :series="t"></apexchart>
+           <apexchart ref="chart" height="300" :options="chartOptions" :series="chartInit"></apexchart>
         </q-card>
         </div>
       </div>
@@ -125,20 +125,7 @@ export default {
             },
         },
       },
-      tp: [{
-        name: 'tweetsProcessed',
-        data: []
-      }],
-      ii: [{
-        name: 'imagesIdentified',
-        data: []
-      }],
-      fp: [{
-        name: 'facesProcessed',
-        data: []
-      }],
-      im: [{
-        name: 'imagesModerated',
+      chartInit: [{
         data: []
       }],
       tweetsProcessed: null,      
@@ -163,8 +150,8 @@ export default {
     }
     this.$refs.chart.updateSeries([
       {
-          name: 'tweetsProcessed',
-          data: this.tweetsProcessed.data
+        name: 'tweetsProcessed',
+        data: this.tweetsProcessed.data
       },
       {
         name: 'imagesIdentified',

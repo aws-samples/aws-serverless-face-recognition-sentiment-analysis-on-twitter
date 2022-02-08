@@ -55,7 +55,7 @@ def GetMetric(lambdaName, metricName, unit, statType):
         ],
         EndTime=datetime.utcnow(),
         StartTime=month_ago,
-        Period=14400,
+        Period=7200,
         Statistics=[statType],
         Unit=unit
     )
