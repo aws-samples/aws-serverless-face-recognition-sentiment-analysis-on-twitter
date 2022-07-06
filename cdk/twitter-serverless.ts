@@ -160,7 +160,7 @@ export class TwServerless extends cdk.NestedStack {
         Bucket: props.s3Bucket.bucketName
       }
     })
-    this.athenaQueryFunction.currentVersion.addAlias('live');
+    this.athenaQueryFunction.addAlias('live');
     props.s3Bucket.grantReadWrite(this.athenaQueryFunction);
     this.athenaQueryFunction.addToRolePolicy(ssmReadPolicy);
     this.athenaQueryFunction.addToRolePolicy(athenaPolicy);
@@ -179,7 +179,7 @@ export class TwServerless extends cdk.NestedStack {
         Bucket: props.s3Bucket.bucketName
       }
     })
-    this.rekognitionFunction.currentVersion.addAlias('live');
+    this.rekognitionFunction.addAlias('live');
     props.s3Bucket.grantReadWrite(this.rekognitionFunction)
     this.rekognitionFunction.addToRolePolicy(ssmReadPolicy);
     this.rekognitionFunction.addToRolePolicy(rekReadPolicy);
@@ -197,7 +197,7 @@ export class TwServerless extends cdk.NestedStack {
         Bucket: props.s3Bucket.bucketName
       }
     })
-    this.processFacesFunction.currentVersion.addAlias('live');
+    this.processFacesFunction.addAlias('live');
     props.s3Bucket.grantReadWrite(this.processFacesFunction)
     this.processFacesFunction.addToRolePolicy(ssmReadPolicy);
     this.processFacesFunction.addToRolePolicy(comprehendPolicy);
@@ -217,7 +217,7 @@ export class TwServerless extends cdk.NestedStack {
         AthQueryLambdaName: this.athenaQueryFunction.functionName
       }
     })
-    this.getImageFunction.currentVersion.addAlias('live');
+    this.getImageFunction.addAlias('live');
     this.getImageFunction.addToRolePolicy(ssmReadPolicy);
     this.getImageFunction.addToRolePolicy(gluePolicy);
     props.s3Bucket.grantReadWrite(this.getImageFunction)
@@ -274,7 +274,7 @@ export class TwServerless extends cdk.NestedStack {
         DdbImageTable: ddbImageTable.tableName
       }
     })    
-    this.parseFunction.currentVersion.addAlias('live');
+    this.parseFunction.addAlias('live');
     this.parseFunction.addToRolePolicy(ssmReadPolicy);
     props.s3Bucket.grantReadWrite(this.parseFunction);
     ddbImageTable.grantReadWriteData(this.parseFunction);
@@ -296,7 +296,7 @@ export class TwServerless extends cdk.NestedStack {
         RekognitionLambdaName: this.rekognitionFunction.functionName
       }
     })
-    this.statFunction.currentVersion.addAlias('live');
+    this.statFunction.addAlias('live');
     this.statFunction.addToRolePolicy(ssmReadPolicy);
     this.statFunction.addToRolePolicy(cloudwatchPolicy);
 
