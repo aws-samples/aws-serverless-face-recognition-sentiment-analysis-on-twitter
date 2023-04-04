@@ -76,15 +76,6 @@ Resources:
             ExpirationInDays: 2
             Status: Enabled
             Prefix: "twitter-ath-results"
-
-  BucketParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: /twitter-demo/bucket
-      Type: String
-      Value: !Ref Bucket
-      Description: Bucket Name
-
   
   OriginAccessIdentity:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
@@ -100,7 +91,7 @@ Resources:
           - DomainName: !Join
               - ''
               - - !Ref Bucket
-                - .s3.amazonaws.com
+                - !Sub .s3.${AWS::Region}.amazonaws.com
             OriginPath: /shared
             Id: !Ref Bucket
             S3OriginConfig:
@@ -128,7 +119,6 @@ Resources:
 
   BucketPolicy:
     Type: AWS::S3::BucketPolicy
-    DependsOn: OriginAccessIdentity
     Properties:
       Bucket: !Ref Bucket
       PolicyDocument:
@@ -162,15 +152,9 @@ Resources:
         AttributeName: expire_at
         Enabled: True
 
-  # AccessLogs:
-  #   Type: AWS::Logs::LogGroup
-
   HttpApi:
     Type: AWS::Serverless::HttpApi
-    Properties:
-      # AccessLogSettings:
-      #   DestinationArn: !GetAtt AccessLogs.Arn
-      #   Format: $context.requestId $context.requestTime $context.path $context.status $context.responseLatency $context.integrationLatency
+    Properties:      
       DefaultRouteSettings:
         ThrottlingBurstLimit: 200
       FailOnWarnings: True
@@ -254,7 +238,7 @@ Resources:
             TableName:
               !Ref DdbImageTable
         - SSMParameterReadPolicy:
-            ParameterName: "twitter-demo*"
+            ParameterName: !Ref SSMParameterPrefix
       Environment:
         Variables:
           STATE_MACHINE_ARN: !Ref StateMachine
@@ -282,7 +266,7 @@ Resources:
         - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
         - arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess
         - SSMParameterReadPolicy:
-            ParameterName: "twitter-demo*"
+            ParameterName: !Ref SSMParameterPrefix
       Environment:
         Variables:
           ParserLambdaName: !Ref Parser
@@ -302,7 +286,7 @@ Resources:
               !Ref Bucket 
         - arn:aws:iam::aws:policy/AmazonAthenaFullAccess
         - SSMParameterReadPolicy:
-            ParameterName: "twitter-demo*"
+            ParameterName: !Ref SSMParameterPrefix
       Environment:
         Variables:
           BUCKET_NAME: !Ref Bucket
@@ -326,7 +310,7 @@ Resources:
       Policies:
         - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
         - SSMParameterReadPolicy:
-            ParameterName: "twitter-demo*"
+            ParameterName: !Ref SSMParameterPrefix
         - LambdaInvokePolicy:
             FunctionName:
               !Ref AthenaQuery
@@ -357,7 +341,7 @@ Resources:
               ThrottlingBurstLimit: 100
       Policies:
         - SSMParameterReadPolicy:
-            ParameterName: "twitter-demo*"
+            ParameterName: !Ref SSMParameterPrefix
         - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
         - S3CrudPolicy:
             BucketName:
@@ -378,7 +362,7 @@ Resources:
             BucketName:
               !Ref Bucket
         - SSMParameterReadPolicy:
-            ParameterName: "twitter-demo*"
+            ParameterName: !Ref SSMParameterPrefix
         - arn:aws:iam::aws:policy/AmazonRekognitionFullAccess
         - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
 
@@ -393,7 +377,7 @@ Resources:
       Policies:
         - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
         - SSMParameterReadPolicy:
-            ParameterName: "twitter-demo*"
+            ParameterName: !Ref SSMParameterPrefix
         - FirehoseCrudPolicy:
             DeliveryStreamName: "*"        
         - ComprehendBasicAccessPolicy: {}

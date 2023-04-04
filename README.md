@@ -24,7 +24,7 @@ This app is deployed through AWS CloudFormation with an additional Vue.js applic
 - npm to be able to build the Vue.js app
 - [AWS cli](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) to be able to interact with the AWS resources
 - AWS Account and permissition to create the resources.
-- Python 3.8 or Docker installed in your local machine. 
+- Python 3.8 or Docker installed in your local machine.
 
 ### Step 1: Create the Twitter API keys
 
@@ -90,7 +90,7 @@ Commands you can use next
 
 ### Step 3: Deploy the backend usins *sam deploy* 
 
-1. Now it is time to deploy the solution to your AWS Account. The command will ask you a few questions. Below an example of the questions and answers you can provide.
+1. Now it is time to deploy the solution to your AWS Account. The command will ask you a few questions. Below an example of the questions and answers you can provide. Make sure you selecte a region that [Amazon Rekognition](https://docs.aws.amazon.com/general/latest/gr/rekognition.html) supports *DetectModerationLabels* and *DetectFaces* APIs.  
 ```bash
 sam deploy --guided --capabilities CAPABILITY_NAMED_IAM
 
@@ -137,7 +137,7 @@ Deploy this changeset? [y/N]: y
 ./appDeploy.sh 
 ```
 
-Once if finishes the script provides you the URL where the applicaton is running. Give it a few minutes so it can collect some data.
+Once if finishes the script provides you the URL where the applicaton is running. Give it a few minutes so the solution can collect some data and transform it into parquet format. 
 
 ```bash
 Site available at: https://<YourCloudFrontId>.cloudfront.net

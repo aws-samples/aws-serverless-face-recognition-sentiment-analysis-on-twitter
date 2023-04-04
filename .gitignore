@@ -23,3 +23,5 @@ pnpm-lock.yaml
 .eslintcache
 .env
 .env.local
+samconfig.toml
+.aws-sam/

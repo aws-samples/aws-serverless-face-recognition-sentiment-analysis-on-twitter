@@ -2,11 +2,10 @@ version = 0.1
 [default]
 [default.deploy]
 [default.deploy.parameters]
-stack_name = "twitter-demo"
-s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-tv5fka8ymyxs"
-s3_prefix = "twitter-demo"
-region = "us-west-2"
-confirm_changeset = true
-capabilities = "CAPABILITY_IAM"
+stack_name = "twitter-demo-oh"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-17tb99lmai8a4"
+s3_prefix = "twitter-demo-oh"
+region = "us-east-2"
+capabilities = "CAPABILITY_NAMED_IAM"
 parameter_overrides = "GlueDatabaseName=\"twitter-db\" SearchText=\"selfie\" SSMParameterPrefix=\"twitter-event-source\" PollingFrequencyInMinutes=\"10\" BatchSize=\"15\""
 image_repositories = []
