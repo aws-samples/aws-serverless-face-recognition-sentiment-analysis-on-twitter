@@ -1,6 +1,6 @@
 ## AWS Serverless face recognition sentiment analysis on twitter 
 
-<img src="images/twitter-app.jpg" alt="app" width="1000"/>
+<img src="images/twitter-app.png" alt="app" width="1000"/>
 
 In this Serverless app we show a rank of the happiest, saddest among other emotions [Amazon Rekognition](https://aws.amazon.com/rekognition/) can detect from tweets that have the word "selfie" in it. The app relies on lambda functions that extract, process, store and report the information from the picture. It is important to note that Twitter is a public platform that does not moderate photos uploaded by its users. This demo uses the AWS Reckognition moderation feature, but occasionally inappropriate photos can appear. **Use at your own discretion**
 
