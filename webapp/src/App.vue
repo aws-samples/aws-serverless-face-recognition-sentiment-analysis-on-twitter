@@ -142,13 +142,13 @@ export default {
             label: 'Images Moderated',
             backgroundColor: documentStyle.getPropertyValue('--pink-500'),
             borderColor: documentStyle.getPropertyValue('--pink-500'),
-            data: ii_values
+            data: im_values
           },
           {
             label: 'Faces Processed',
             backgroundColor: documentStyle.getPropertyValue('--orange-500'),
             borderColor: documentStyle.getPropertyValue('--orange-500'),
-            data: ii_values
+            data: fp_values
           }
         ]
       };
