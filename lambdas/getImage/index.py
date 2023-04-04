@@ -14,7 +14,7 @@ from aws_xray_sdk.core import patch_all
 
 patch_all()
 
-s3_bucket = os.getenv('Bucket')
+BUCKET_NAME = os.getenv('BUCKET_NAME')
 AthQueryLambdaName = os.getenv('AthQueryLambdaName')
 
 logger = logging.getLogger()
@@ -44,7 +44,7 @@ def handler(event, context):
             round(emotion.confidence,3) as confidence, full_text,
             bbox_left, bbox_top, bbox_width, bbox_height,
             imgWidth, imgHeight, sentiment, updated_at
-            from twitter_data.parquet_records TABLESAMPLE BERNOULLI (50)
+            from parquet_records TABLESAMPLE BERNOULLI (50)
             cross JOIN UNNEST(emotions) as t(emotion)
             where emotion.type = '%s'
             order by confidence desc

@@ -1,0 +1,8 @@
+{
+    "Parameters": {
+    "ParserLambdaName": "twitter-demo-Parser-ljkUcnSWxE3b",
+    "AthQueryLambdaName": "twitter-demo-AthenaQuery-GYYNJj6N8CVd",
+    "ProcessFacesLambdaName": "twitter-demo-ProcessFaces-tRvj1VjKBfXW",
+    "RekognitionLambdaName": "twitter-demo-Rekognition-XqAkqvczoGlW"
+    }
+}

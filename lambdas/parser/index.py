@@ -16,12 +16,12 @@ from aws_xray_sdk.core import patch_all
 
 patch_all()
 
-DdbImageTable = os.getenv('DdbImageTable')
-StateMachineArn = os.getenv('StateMachineArn')
+DDB_IMAGE_TABLE = os.getenv('DDB_IMAGE_TABLE')
+STATE_MACHINE_ARN = os.getenv('STATE_MACHINE_ARN')
 
 rek = boto3.client('rekognition')
 dynamodb = boto3.resource("dynamodb")
-dyn_table = dynamodb.Table(DdbImageTable)
+dyn_table = dynamodb.Table(DDB_IMAGE_TABLE)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -60,7 +60,7 @@ def AddImage(url,tweet_id):
 def CallStepFunction(tweet):
     client = boto3.client('stepfunctions') 
     response = client.start_execution(
-        stateMachineArn=StateMachineArn,
+        stateMachineArn=STATE_MACHINE_ARN,
         name=tweet["tweet_id"],
         input=json.dumps(tweet)
     )

@@ -13,12 +13,13 @@ from aws_xray_sdk.core import patch_all
 
 patch_all()
 
-S3Bucket = os.getenv('Bucket')
+BUCKET_NAME = os.getenv('BUCKET_NAME')
+DATABASE_NAME = os.getenv('DATABASE_NAME')
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-s3_output =  's3://' + S3Bucket + '/twitter-ath-results/'
+s3_output =  's3://' + BUCKET_NAME + '/twitter-ath-results/'
 ath = boto3.client('athena')
 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -27,7 +28,7 @@ def AthenaQuery(query_string, emotion):
     query_id = ath.start_query_execution(
         QueryString=query_string,
         QueryExecutionContext={
-            'Database': 'DATABASE_NAME'
+            'Database': DATABASE_NAME
         },
         ResultConfiguration={
             'OutputLocation': s3_output + emotion
@@ -61,7 +62,5 @@ def AthenaQuery(query_string, emotion):
 def handler(event, context):
     
         res = AthenaQuery(event["query"], event["type"])
-
         logger.info(res)
-
         return res

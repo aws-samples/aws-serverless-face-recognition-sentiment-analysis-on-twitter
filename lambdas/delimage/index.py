@@ -13,7 +13,7 @@ from aws_xray_sdk.core import patch_all
 
 patch_all()
 
-s3_bucket = os.getenv('Bucket')
+BUCKET_NAME = os.getenv('BUCKET_NAME')
 AthDispatcherLambdaName = os.getenv('AthDispatcherLambdaName')
 
 logger = logging.getLogger()
@@ -64,7 +64,7 @@ def handler(event, context):
         pos_datetime = len(name_updated_at)+6 #adding characters for minute
 
         response = client.list_objects_v2(
-            Bucket=s3_bucket,          
+            Bucket=BUCKET_NAME,          
             MaxKeys=60,
             Prefix=name_updated_at
         )        
@@ -80,7 +80,7 @@ def handler(event, context):
             print(file["Key"])
             print(dt_utc_file)
             if dt_utc_file > dt:
-                s3.Object(s3_bucket, file["Key"]).delete()                
+                s3.Object(BUCKET_NAME, file["Key"]).delete()                
                 print('DELETED: ' + file["Key"]) 
                 break
                                

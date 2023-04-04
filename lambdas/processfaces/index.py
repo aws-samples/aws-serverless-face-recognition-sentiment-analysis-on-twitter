@@ -19,7 +19,8 @@ from aws_xray_sdk.core import patch_all
 
 patch_all()
 
-S3Bucket = os.getenv('Bucket')
+BUCKET_NAME = os.getenv('BUCKET_NAME')
+FireHoseName = os.getenv('TwitterDeliveryStream')
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -94,17 +95,7 @@ def handler(event, context, metrics):
         if "result" in event:
             if event["result"] == "Moderated":
                 logger.warning(event["msg"])
-                return {'result': 'Moderated' }
-
-
-        # If Firehose is implemented get its name
-        FireHoseNameValue = GetSsmParam('/twitter-demo/deliverystream', False)
-
-        if ('arn:' in FireHoseNameValue):
-            x = FireHoseNameValue.split('/')
-            FireHoseName = x[1]
-        else:
-            FireHoseName = FireHoseNameValue        
+                return {'result': 'Moderated' }      
 
         faces_count = 0
         low_res_count = 0
@@ -179,17 +170,16 @@ def handler(event, context, metrics):
                 s3.put_object(
                     ACL='private',
                     Body=json.dumps(fdata),
-                    Bucket=S3Bucket,          
+                    Bucket=BUCKET_NAME,          
                     Key=key
                 )        
-
-                if len(FireHoseName) > 2:
-                    response = firehose.put_record(
-                        DeliveryStreamName=FireHoseName,
-                        Record={
-                            'Data': json.dumps(fdata)
-                        }
-                    )  
+  
+                response = firehose.put_record(
+                    DeliveryStreamName=FireHoseName,
+                    Record={
+                        'Data': json.dumps(fdata)
+                    }
+                )  
                         
                 xray_recorder.end_subsegment()
         

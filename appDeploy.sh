@@ -12,13 +12,8 @@ CYAN='\033[0;36m'
 WHITE='\033[1;37m'
 SET='\033[0m'
 
-# Check parameters
-if [[ ! -n "$1" ]]; then
-  echo "using TwitterStack as Stackname (default)"
-  STACKNAME="TwitterStack"
-else
-  STACKNAME=$1
-fi
+STACKNAME=$(cat samconfig.toml | grep stack_name |  tr -d '"' | awk '{print $3}')
+REGION=$(cat samconfig.toml | grep region |  tr -d '"' | awk '{print $3}')
 
 aws cloudformation describe-stacks --stack-name ${STACKNAME} &> /dev/null
 if [ $? -eq 0 ]; then
@@ -30,21 +25,19 @@ fi
 
 BUCKET=$(aws cloudformation describe-stacks --stack-name $STACKNAME --query "Stacks[0].Outputs[?OutputKey=='S3Bucket'].OutputValue" --output text)
 echo -e "Bucket: ${YELLOW}${BUCKET}${SET}"
-API=$(aws cloudformation describe-stacks --stack-name $STACKNAME --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
+API=$(aws cloudformation describe-stacks --stack-name $STACKNAME --query "Stacks[0].Outputs[?OutputKey=='HttpApiUrl'].OutputValue" --output text)
 echo -e "ApiUrl: ${YELLOW}${API}${SET}"
-CLOUDFRONT=$(aws cloudformation describe-stacks --stack-name $STACKNAME --query "Stacks[0].Outputs[?OutputKey=='Cloudfront'].OutputValue" --output text)
+CLOUDFRONT=$(aws cloudformation describe-stacks --stack-name $STACKNAME --query "Stacks[0].Outputs[?OutputKey=='CloudFrontUrl'].OutputValue" --output text)
 echo -e "CloudFront domain name: ${YELLOW}${CLOUDFRONT}${SET}"
-AWS_REGION=$(aws configure get region)
 echo -e "${YELLOW}-- API: ${WHITE}${API}${SET}"
-echo -e "${YELLOW}-- REGION: ${WHITE}${AWS_REGION}${SET}"
+echo -e "${YELLOW}-- REGION: ${WHITE}${REGION}${SET}"
 echo -e "-- Creating .env file"
-cd vue-app
-echo "VUE_APP_AWS_API_URL=${API}" > .env
+cd webapp
+echo "VITE_API_URL=${API}" > .env
 echo -e "-- npm commands"
 npm install
 npm run build
-aws s3 cp dist s3://${BUCKET} --recursive
-aws s3 website s3://${BUCKET}/ --index-document index.html --error-document error.html
+aws s3 cp dist s3://${BUCKET}/shared --recursive
 cd ..
 echo 
-echo -e "Site available at: ${YELLOW}https://${CLOUDFRONT}/index.html${SET}"
+echo -e "Site available at: ${YELLOW}https://${CLOUDFRONT}${SET}"

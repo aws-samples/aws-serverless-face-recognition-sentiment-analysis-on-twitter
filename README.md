@@ -20,38 +20,18 @@ Another cool service used is [AWS X-Ray](https://aws.amazon.com/xray/) that allo
 
 This app is deployed through AWS CloudFormation with an additional Vue.js application configuration. The following resources are required to be installed:
 
-- [aws CDK](https://docs.aws.amazon.com/cdk/v2/guide/home.html) - The AWS CDK lets you build reliable, scalable, cost-effective applications in the cloud with the considerable expressive power of a programming language.
+- [AWS SAM](https://aws.amazon.com/serverless/sam/) - The AWS Serverless Application Model (SAM) is an open-source framework for building serverless applications. It provides shorthand syntax to express functions, APIs, databases, and event source mappings.
 - npm to be able to build the Vue.js app
-- [aws cli](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) to be able to interact with the AWS resources
+- [AWS cli](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) to be able to interact with the AWS resources
 - AWS Account and permissition to create the resources.
+- Python 3.8 or Docker installed in your local machine. 
 
-## Installing and configuring AWS CDK
+### Step 1: Create the Twitter API keys
 
-The AWS CDK Toolkit is installed with the Node Package Manager. In most cases, we recommend installing it globally.
-```bash
-npm install -g aws-cdk
-```
-
-Deploying AWS CDK apps into an AWS environment (a combination of an AWS account and region) may require that you provision resources the AWS CDK needs to perform the deployment. These resources include an Amazon S3 bucket for storing files and IAM roles that grant permissions needed to perform deployments. The process of provisioning these initial resources is called [bootstrapping](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html).
-```bash
-cdk bootstrap
-```
-
-### Step 1: Configure the Twitter API keys and the Twitter Event Source Lambda
-
-1. The Twitter polling is based on the https://github.com/awslabs/aws-serverless-twitter-event-source. This lambda is responsible for connecting to twitter and pull the data to be processed. 
-   
-These are  Twitter Source app initial setup. You can change those in the CloudFormation template: 
-- **SearchText** - *selfie* 
-- **StreamModeEnabled** - *true*
-- **PollingFrequencyInMinutes** - 10 min
-- **BatchSize** - 15
-- **TweetProcessorFunctionName** - The Parser's Lambda Function Arn.
-
-2. The *Twitter event source* Lambda requires the following Twitter API Keys: Consumer Key (API Key, Consumer Secret (API Secret), Access Token, and Access Token Secret. The following steps walk you through registering the app with your Twitter account to create these values.
+1. The solution requires the following Twitter API Keys: Consumer Key (API Key, Consumer Secret (AP I Secret), Access Token, and Access Token Secret. The following steps walk you through registering the app with your Twitter account to create these values.
    - Create a Twitter account if you do not already have one
    - Register a new application with your Twitter account:
-     - Go to http://twitter.com/oauth_clients/new
+     - Go to https://developer.twitter.com/en/portal/projects-and-apps
      - Click "Create New App"
      - Under Name, enter something descriptive (but unique), e.g., aws-serverless-twitter-es
      - Enter a description
@@ -68,8 +48,8 @@ These are  Twitter Source app initial setup. You can change those in the CloudFo
      - Scroll down to the Access Token section and click "Create my access token"
      - You will now have the Access Token and Access Token Secret values required by the app.
 
-
-3. The app expects to find the Twitter API keys as encrypted SecureString values in SSM Parameter Store. You can setup the required parameters via the AWS Console or using the following AWS CLI commands:
+2.  Store the keys as encrypted SecureString values in SSM Parameter Store. You can setup the required parameters via the AWS Console or using the following AWS CLI commands:
+   
  ```bash
 aws ssm put-parameter --name /twitter-event-source/consumer_key --value <your consumer key value> --type SecureString --overwrite
 aws ssm put-parameter --name /twitter-event-source/consumer_secret --value <your consumer secret value> --type SecureString --overwrite
@@ -77,33 +57,90 @@ aws ssm put-parameter --name /twitter-event-source/access_token --value <your ac
 aws ssm put-parameter --name /twitter-event-source/access_token_secret --value <your access token secret value> --type SecureString --overwrite
   ```
 
-### Step 2: Deploy the solution using AWS CDK
+### Step 2: Build all the solution's libraries dependencies
 
-1. Clone this repo and go to the cdk directory
-2. Execute the following commands:
+1. The AWS Lambda functions requires libraries for their executions and SAM fetches and install them per each funtion. The *sam build* command creates a .aws-sam directory with the AWS SAM template, AWS Lambda function code, and any language-specific files and dependencies in a format ready to be deployed in the next step. 
+   
+If you have Python 3.8 installed in your machine you can run:
+   
 ```bash
-npm install
-npm run build
-cdk synth
-cdk deploy
-```
-3. Wait until the Outputs:
-```bash
-Outputs:
-TwitterStack.ApiUrL = https://xxxxxxxxxx.execute-api.xx-xxxx-x.amazonaws.com/prod/
-TwitterStack.S3Bucket = twitterstack-xxxxxxxxxxxxxx
-Stack ARN:
-arn:aws:cloudformation:xx-xxxx-x:00000000000:stack/TwitterStack/80c7e670-858d-11ec-0000-0000000000
-
+sam build
 ```
 
-### Step 3: Deploy Vue.js app into S3
+Another option is to execute *sam build* using containers. It requires you to have docker installed :
+```bash
+sam build --use-container --build-image amazon/aws-sam-cli-build-image-python3.8
+```
 
-1. Go back to the repo base directory and executes the script to publish the Vue.js application into your bucket:
+When the build finishes, you will receive a message like: 
+```bash
+Build Succeeded
+
+Built Artifacts  : .aws-sam/build
+Built Template   : .aws-sam/build/template.yaml
+
+Commands you can use next
+=========================
+[*] Validate SAM template: sam validate
+[*] Invoke Function: sam local invoke
+[*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
+[*] Deploy: sam deploy --guided
+```
+
+
+### Step 3: Deploy the backend usins *sam deploy* 
+
+1. Now it is time to deploy the solution to your AWS Account. The command will ask you a few questions. Below an example of the questions and answers you can provide.
+```bash
+sam deploy --guided --capabilities CAPABILITY_NAMED_IAM
+
+Configuring SAM deploy
+======================
+
+	Looking for config file [samconfig.toml] :  Not found
+
+	Setting default arguments for 'sam deploy'
+	=========================================
+	Stack Name [sam-app]: twitter-demo
+	AWS Region [us-west-2]:
+	Parameter GlueDatabaseName [twitter-db]:
+	Parameter SearchText [selfie]:
+	Parameter SSMParameterPrefix [twitter-event-source]:
+	Parameter PollingFrequencyInMinutes [10]:
+	Parameter BatchSize [15]:
+	#Shows you resources changes to be deployed and require a 'Y' to initiate deploy
+	Confirm changes before deploy [y/N]: y
+	#SAM needs permission to be able to create roles to connect to the resources in your template
+	Allow SAM CLI IAM role creation [Y/n]: y
+	#Preserves the state of previously provisioned resources when an operation fails
+	Disable rollback [y/N]: n
+	GetStat may not have authorization defined, Is this okay? [y/N]: y
+	GetImage may not have authorization defined, Is this okay? [y/N]: y
+	DelImage may not have authorization defined, Is this okay? [y/N]: y
+	Save arguments to configuration file [Y/n]: y
+	SAM configuration file [samconfig.toml]:
+	SAM configuration environment [default]:
+```
+
+Once AWS SAM deploy does it magic, all you need is to answer **Y** to proceed the deployment.
+
+```bash
+Previewing CloudFormation changeset before deployment
+======================================================
+Deploy this changeset? [y/N]: y
+```
+
+### Step 4: Deploy Vue.js app into S3
+
+1. In this last step we will executes the script to publish the Vue.js application into your bucket that exposes it via Amazon Cloudfront. **The script requires the npm and aws cli installed**
 ```bash
 ./appDeploy.sh 
 ```
 
-This step updates the code with the AWS resources that were created, compile and deploy the vue.js app into the bucket.
+Once if finishes the script provides you the URL where the applicaton is running. Give it a few minutes so it can collect some data.
+
+```bash
+Site available at: https://<YourCloudFrontId>.cloudfront.net
+```
 
 :warning: **Important Note: Some Ad blocking apps can prevent the images to be shown.** 
