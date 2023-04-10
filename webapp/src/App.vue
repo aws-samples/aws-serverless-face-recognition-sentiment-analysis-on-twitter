@@ -2,10 +2,10 @@
   <div class="flex flex-wrap justify-content-around gap-3">
     <Card>
       <template #title>
-        Twitter Face detection/sentiment analisys app
+        Twitter Face detection/sentiment analysis app
           </template>
           <template #subtitle>
-            <span>This demo uses the AWS Reckognition's moderation feature, but from occasionally inappropriate photos can appear.
+            <span>This demo uses the AWS Reckognition's moderation feature, but occasionally inappropriate photos can appear.
             Please use the delete icon to remove these photos from the database.</span>            
           </template>
           <template #content>
