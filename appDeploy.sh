@@ -15,7 +15,7 @@ SET='\033[0m'
 STACKNAME=$(cat samconfig.toml | grep stack_name |  tr -d '"' | awk '{print $3}')
 REGION=$(cat samconfig.toml | grep region |  tr -d '"' | awk '{print $3}')
 
-aws cloudformation describe-stacks --stack-name ${STACKNAME} &> /dev/null
+aws cloudformation describe-stacks --stack-name ${STACKNAME} --region ${REGION} &> /dev/null
 if [ $? -eq 0 ]; then
    echo -e "Stack ${YELLOW}${STACKNAME}${SET} found"
 else
@@ -23,11 +23,11 @@ else
    exit 1
 fi
 
-BUCKET=$(aws cloudformation describe-stacks --stack-name $STACKNAME --query "Stacks[0].Outputs[?OutputKey=='S3Bucket'].OutputValue" --output text)
+BUCKET=$(aws cloudformation describe-stacks --stack-name $STACKNAME --query "Stacks[0].Outputs[?OutputKey=='S3Bucket'].OutputValue" --output text --region ${REGION})
 echo -e "Bucket: ${YELLOW}${BUCKET}${SET}"
-API=$(aws cloudformation describe-stacks --stack-name $STACKNAME --query "Stacks[0].Outputs[?OutputKey=='HttpApiUrl'].OutputValue" --output text)
+API=$(aws cloudformation describe-stacks --stack-name $STACKNAME --query "Stacks[0].Outputs[?OutputKey=='HttpApiUrl'].OutputValue" --output text --region ${REGION})
 echo -e "ApiUrl: ${YELLOW}${API}${SET}"
-CLOUDFRONT=$(aws cloudformation describe-stacks --stack-name $STACKNAME --query "Stacks[0].Outputs[?OutputKey=='CloudFrontUrl'].OutputValue" --output text)
+CLOUDFRONT=$(aws cloudformation describe-stacks --stack-name $STACKNAME --query "Stacks[0].Outputs[?OutputKey=='CloudFrontUrl'].OutputValue" --output text --region ${REGION})
 echo -e "CloudFront domain name: ${YELLOW}${CLOUDFRONT}${SET}"
 echo -e "${YELLOW}-- API: ${WHITE}${API}${SET}"
 echo -e "${YELLOW}-- REGION: ${WHITE}${REGION}${SET}"

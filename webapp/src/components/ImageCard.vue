@@ -113,8 +113,7 @@
         //console.log("del: " + id + " - " + emotion + " - " + this.baseUrl);
         try {
           //console.log("calling " + this.baseUrl);
-          this.$http
-            .post(this.baseUrl + "/delimage", {
+          axios.post(this.baseUrl + "/delimage", {
               tweet: tweet
             })
             .then(function(response) {
@@ -127,12 +126,6 @@
             });
         } catch (error) {
           console.error(error);
-          this.$q.notify({
-            color: "negative",
-            position: "top",
-            icon: "warning",
-            message: "Something went wrong: " + error
-          });
         }
       }
     }

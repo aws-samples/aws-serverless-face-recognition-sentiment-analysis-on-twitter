@@ -14,7 +14,7 @@ from aws_xray_sdk.core import patch_all
 patch_all()
 
 BUCKET_NAME = os.getenv('BUCKET_NAME')
-AthDispatcherLambdaName = os.getenv('AthDispatcherLambdaName')
+FIREHOSE_NAME = os.getenv('FIREHOSE_NAME')
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -23,27 +23,10 @@ print('Loading function')
 
 client = boto3.client('s3')
 s3 = boto3.resource('s3')
-ssm = boto3.client('ssm')
 
 payload = {}
 
 today = datetime.now()
-
-def GetSsmParam(paramKey, isEncrypted):
-    try:
-        ssmResult = ssm.get_parameter(
-            Name=paramKey,
-            WithDecryption=isEncrypted
-        )
-
-        if (ssmResult["ResponseMetadata"]["HTTPStatusCode"] == 200):
-            return ssmResult["Parameter"]["Value"]
-        else:
-            return ""
-
-    except ValueError:
-        logger.error(str(ValueError))
-        return ""
 
 def handler(event, context):
     try:
@@ -57,10 +40,8 @@ def handler(event, context):
         dt = datetime.fromisoformat(tweet["updated_at"])
         
         s3_key = "parquet-" + str(today.year) + "/"
-        # If Firehose is implemented get its name
-        FireHoseName = GetSsmParam('/twitter-demo/deliverystream', False)
 
-        name_updated_at = s3_key + FireHoseName + "-1-" + dt.strftime("%Y-%m-%d-%H")
+        name_updated_at = s3_key + FIREHOSE_NAME + "-1-" + dt.strftime("%Y-%m-%d-%H")
         pos_datetime = len(name_updated_at)+6 #adding characters for minute
 
         response = client.list_objects_v2(

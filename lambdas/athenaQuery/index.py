@@ -23,8 +23,9 @@ s3_output =  's3://' + BUCKET_NAME + '/twitter-ath-results/'
 ath = boto3.client('athena')
 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-@xray_recorder.capture('AthQuery')
+@xray_recorder.capture('## AthQuery')
 def AthenaQuery(query_string, emotion):
+    xray_recorder.put_annotation('Query', query_string)
     query_id = ath.start_query_execution(
         QueryString=query_string,
         QueryExecutionContext={
@@ -39,7 +40,7 @@ def AthenaQuery(query_string, emotion):
         query_status = ath.get_query_execution(QueryExecutionId=query_id)['QueryExecution']['Status']['State']
         if query_status == 'FAILED' or query_status == 'CANCELLED':
             raise Exception('Athena query with the string "{}" failed or was cancelled'.format(query_string))
-        time.sleep(5)
+        time.sleep(2)
         results_paginator = ath.get_paginator('get_query_results')
         results_iter = results_paginator.paginate(
             QueryExecutionId=query_id,
@@ -62,5 +63,5 @@ def AthenaQuery(query_string, emotion):
 def handler(event, context):
     
         res = AthenaQuery(event["query"], event["type"])
-        logger.info(res)
+        logger.debug(res)
         return res

@@ -248,7 +248,7 @@ Resources:
   GetStat:
     Type: AWS::Serverless::Function 
     Properties:
-      CodeUri: ./lambdas/getstat/
+      CodeUri: ./lambdas/getStat/
       Layers:
         - !Ref PandasLayer
       Events:
@@ -278,7 +278,7 @@ Resources:
   AthenaQuery:
     Type: AWS::Serverless::Function 
     Properties:
-      CodeUri: ./lambdas/athenaquery/
+      CodeUri: ./lambdas/athenaQuery/
       Policies:
         - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
         - S3CrudPolicy:
@@ -295,7 +295,7 @@ Resources:
   GetImage:
     Type: AWS::Serverless::Function 
     Properties:
-      CodeUri: ./lambdas/getimage/
+      CodeUri: ./lambdas/getImage/
       Events:
         ExplicitApi: # warning: creates a public endpoint
           Type: HttpApi
@@ -327,7 +327,7 @@ Resources:
   DelImage:
     Type: AWS::Serverless::Function 
     Properties:
-      CodeUri: ./lambdas/delimage/
+      CodeUri: ./lambdas/delImage/
       Events:
         ExplicitApi: # warning: creates a public endpoint
           Type: HttpApi
@@ -340,8 +340,6 @@ Resources:
             RouteSettings:
               ThrottlingBurstLimit: 100
       Policies:
-        - SSMParameterReadPolicy:
-            ParameterName: !Ref SSMParameterPrefix
         - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
         - S3CrudPolicy:
             BucketName:
@@ -349,6 +347,7 @@ Resources:
       Environment:
         Variables:
           BUCKET_NAME: !Ref Bucket
+          FIREHOSE: !Ref TwitterDeliveryStream
 
   Rekognition:
     Type: AWS::Serverless::Function 
@@ -369,7 +368,7 @@ Resources:
   ProcessFaces:
     Type: AWS::Serverless::Function 
     Properties:
-      CodeUri: ./lambdas/processfaces/
+      CodeUri: ./lambdas/processFaces/
       Environment:
         Variables:
           BUCKET_NAME: !Ref Bucket

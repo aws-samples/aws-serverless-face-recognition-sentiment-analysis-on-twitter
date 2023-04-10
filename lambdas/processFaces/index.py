@@ -26,10 +26,8 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 s3 = boto3.client('s3')
-rek = boto3.client('rekognition')
 comprehend = boto3.client('comprehend')
 firehose = boto3.client('firehose')
-ssm = boto3.client('ssm')
 
 male_names = ["Michael","Patrick","Stefan","Daniel","Thomas","Christoph","Dominik","Lukas","Philip","Florian","Manuel","Andreas","Alexander","Markus","Martin","Matthias","Christian","Mario","Bernhard","Johannes","Maximilian","Benjamin","Raphael","Peter","Christopher","René","Simon","Marco","Fabian","Julian","Marcel","Georg","Jakob","Tobias","Clemens","Robert","Oliver","Paul","Jürgen","Wolfgang","Felix","Josef","Hannes","Roman","Gerald","Sascha","Franz","Klaus","Pascal","Roland","Richard","Gregor","Harald","Gerhard","Armin","Gabriel","Marc","Alex","Alexis","Antonio","Austin","Beau","Beckett","Bentley","Brayden","Bryce","Caden","Caleb","Camden","Cameron","Carter","Casey","Cash","Charles","Charlie","Chase","Clark","Cohen","Connor","Cooper","David","Dawson","Declan","Dominic","Drake","Drew","Dylan","Edward","Eli","Elijah","Elliot","Emerson","Emmett","Ethan","Evan","Ezra","Felix","Gage","Gavin","Gus","Harrison","Hayden","Henry","Hudson","Hunter","Isaac","Jace","Jack","Jackson","Jacob","James","Jase","Jayden","John","Jonah","Joseph","Kai","Kaiden","Kingston","Levi","Liam","Logan","Lucas","Luke","Marcus","Mason","Matthew","Morgan","Nate","Nathan","Noah","Nolan","Oliver","Owen","Parker","Raphaël","Riley","Ryan","Samuel","Sebastian","Seth","Simon","Tanner","Taylor","Theo","Tristan","Turner","Ty","William","Wyatt"]
 female_names = ["Julia","Lisa","Stefanie","Katharina","Melanie","Christina","Sabrina","Sarah","Anna","Sandra","Katrin","Carina","Bianca","Nicole","Jasmin","Kerstin","Tanja","Jennifer","Verena","Daniela","Theresa","Viktoria","Elisabeth","Nadine","Nina","Tamara","Madalena","Claudia","Jacquelina","Machaela","Martina","Denise","Barbara","Bettina","Alexandra","Cornelia","Maria","Vanessa","Andrea","Johanna","Eva","Natalie","Sabine","Isabella","Anja","Simone","Janine","Marlene","Patricia","Petra","Laura","Yvonne","Manuela","Karin","Birgit","Caroline","Tine","Carmen","Abigail","Adalyn","Aleah","Alexa","Alexis","Alice","Alyson","Amelia","Amy","Anabelle","Anna","Annie","Aria","Aubree","Ava","Ayla","Brielle","Brooke","Brooklyn","Callie","Camille","Casey","Charlie","Charlotte","Chloe","Claire","Danica","Elizabeth","Ella","Ellie","Elly","Emersyn","Emily","Emma","Evelyn","Felicity","Fiona","Florence","Georgia","Hailey","Haley","Isla","Jessica","Jordyn","Juliette","Kate","Katherine","Kayla","Keira","Kinsley","Kyleigh","Lauren","Layla","Lea","Leah","Lexi","Lily","Lydia","Lylah","Léa","Macie","Mackenzie","Madelyn","Madison","Maggie","Marley","Mary","Maya","Meredith","Mila","Molly","Mya","Olivia","Paige","Paisley","Peyton","Piper","Quinn","Rebekah","Rosalie","Ruby","Sadie","Samantha","Savannah","Scarlett","Selena","Serena","Sofia","Sophia","Sophie","Stella","Summer","Taylor","Tessa","Victoria","Violet","Zoey","Zoé"]
@@ -69,25 +67,8 @@ def GetSentiment(tweet_text, language_code):
         return response["Sentiment"]
 
     except Exception as e:
-        logger.error('Something went wrong: ' + str(e))
+        logger.error('Something went wrong: ' + str(e))        
         return 'Unknow'
-
-def GetSsmParam(paramKey, isEncrypted):
-    try:
-        ssmResult = ssm.get_parameter(
-            Name=paramKey,
-            WithDecryption=isEncrypted
-        )
-
-        if (ssmResult["ResponseMetadata"]["HTTPStatusCode"] == 200):
-            return ssmResult["Parameter"]["Value"]
-        else:
-            return ""
-
-    except Exception as e:
-        logger.error(str(e))
-        return ""
-
     
 @metric_scope
 def handler(event, context, metrics):
@@ -102,10 +83,15 @@ def handler(event, context, metrics):
         face_not_identified_count = 0
         faces = []
         fdata = {}
-        event_data = json.loads(event["data"])
+        event_data = json.loads(event["data"])        
         identified_faces = event_data["facerecords"]
         fdata["first_name"] = 'NULL'
         fdata["last_name"] = 'NULL'
+        logger.info('## Sentiment Analysis for ' + event_data["tweet_id"])
+        xray_recorder.begin_subsegment('## Comprehend Calls')
+        language = GetDominantLanguage(event_data["full_text"])        
+        sentiment = GetSentiment(event_data["full_text"],language)
+        xray_recorder.end_subsegment()
 
         for face in identified_faces:                     
             if (int(face["Confidence"])) < 80:
@@ -120,9 +106,6 @@ def handler(event, context, metrics):
                 fdata["first_name"] = random.choice(male_names)
             else:
                 fdata["first_name"] = random.choice(female_names)
-
-            language = GetDominantLanguage(event_data["full_text"])
-            sentiment = GetSentiment(event_data["full_text"],language)
             
             fdata["sentiment"] = sentiment
                 
