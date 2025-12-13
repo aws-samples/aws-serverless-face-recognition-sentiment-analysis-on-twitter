@@ -1,35 +1,41 @@
-## AWS Serverless face recognition sentiment analysis on twitter 
+# AWS Serverless Face Recognition Sentiment Analysis on Twitter
 
 <img src="images/twitter-app.png" alt="app" width="1000"/>
 
-In this Serverless app we show a rank of the happiest, saddest among other emotions [Amazon Rekognition](https://aws.amazon.com/rekognition/) can detect from tweets that have the word "selfie" in it. The app relies on lambda functions that extract, process, store and report the information from the picture. It is important to note that Twitter is a public platform that does not moderate photos uploaded by its users. This demo uses the AWS Reckognition moderation feature, but occasionally inappropriate photos can appear. **Use at your own discretion**
+This serverless application analyzes emotions from Twitter images using [Amazon Rekognition](https://aws.amazon.com/rekognition/). It creates a ranking of the happiest, saddest, and other emotions detected from tweets containing the word "selfie". The app uses Lambda functions to extract, process, store, and report information from images.
 
-The Amazon S3 bucket of this solution creates contains two [Object lifecycle management](https://docs.aws.amazon.com/AmazonS3/latest/dev/object-lifecycle-mgmt.html) for the folders where the reports and records files are stored, which expire the files 2 days after of its creation. Similarly, the dynamoDb table that records all the images processed, expires the records after 2 days of its creation.  
+⚠️ **Important**: Twitter is a public platform without photo moderation. While this demo uses AWS Rekognition's moderation features, inappropriate content may occasionally appear. **Use at your own discretion**.
 
-Below is the diagram for a depiction of the complete architecture.
+## Architecture
 
 <img src="images/twitter-rekognition.png" alt="architecture" width="800"/>
 
-The solution also leverage the [Embedded Metric Format](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch_Embedded_Metric_Format_Specification.html) to create metrics for number of tweets that are being processed, number of images moderated and number of faces identified and processed. There isn't a direct correlations of numbers of tweets and faces processed as not all tweets' images have people, some images are moderated. In some cases one photo can contain more than 10 faces, which makes it impredictable. Becasuse EMF stores the information into AWS CloudWatch metrics, we were able to query it and display the estatitics and the graph data from there. 
+### Key Features
 
-Another cool service used is [AWS X-Ray](https://aws.amazon.com/xray/) that allows you to understand how your application and its underlying services are performing to identify and troubleshoot the root cause of performance issues and errors.
+- **Automated Data Lifecycle**: S3 bucket includes [Object Lifecycle Management](https://docs.aws.amazon.com/AmazonS3/latest/dev/object-lifecycle-mgmt.html) that expires reports and records after 2 days
+- **DynamoDB TTL**: All processed image records automatically expire after 2 days
+- **CloudWatch Metrics**: Uses [Embedded Metric Format](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch_Embedded_Metric_Format_Specification.html) to track:
+  - Number of tweets processed
+  - Images moderated
+  - Faces identified and analyzed
+- **Performance Monitoring**: [AWS X-Ray](https://aws.amazon.com/xray/) integration for application performance insights and troubleshooting
 
-## Initial environment setup
+> **Note**: There's no direct correlation between tweet count and faces processed, as not all images contain people, some are moderated, and single images may contain multiple faces.
 
-### Prerequisites
+## Prerequisites
 
-This app is deployed through AWS CloudFormation with an additional Vue.js application configuration. The following resources are required to be installed:
+This application is deployed using AWS SAM with a Vue.js frontend. You'll need:
 
-- [AWS SAM](https://aws.amazon.com/serverless/sam/) - The AWS Serverless Application Model (SAM) is an open-source framework for building serverless applications. It provides shorthand syntax to express functions, APIs, databases, and event source mappings.
-- npm to be able to build the Vue.js app
-- [AWS cli](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) to be able to interact with the AWS resources
-- AWS Account and permissition to create the resources.
-- Python 3.8 or Docker installed in your local machine.
+- [AWS SAM CLI](https://aws.amazon.com/serverless/sam/) - For building and deploying serverless applications
+- [Node.js and npm](https://nodejs.org/) - For building the Vue.js application
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) - For AWS resource management
+- AWS Account with appropriate permissions
+- Python 3.8+ or Docker for Lambda function builds
 
-### Step 1: Create the Twitter API keys
+### Step 1: Create Twitter API Keys
 
-1. The solution requires the following Twitter API Keys: Consumer Key (API Key, Consumer Secret (AP I Secret), Access Token, and Access Token Secret. The following steps walk you through registering the app with your Twitter account to create these values.
-   - Create a Twitter account if you do not already have one
+1. The solution requires the following Twitter API Keys: Consumer Key (API Key), Consumer Secret (API Secret), Access Token, and Access Token Secret. Follow these steps to register the app with your Twitter account:
+   - Create a Twitter account if you don't already have one
    - Register a new application with your Twitter account:
      - Go to https://developer.twitter.com/en/portal/projects-and-apps
      - Click "Create New App"
@@ -39,16 +45,16 @@ This app is deployed through AWS CloudFormation with an additional Vue.js applic
      - Leave Callback URL blank
      - Read and agree to the Twitter Developer Agreement
      - Click "Create your Twitter application"
-   - (Optional, but recommended) Restrict the application permissions to read only
+   - (Optional, but recommended) Restrict the application permissions to read only:
      - From the detail page of your Twitter application, click the "Permissions" tab
-     - Under the "Access" section, make sure "Read only" is selected and click the "Update Settings" button
+     - Under the "Access" section, make sure "Read only" is selected and click "Update Settings"
    - Generate an access token:
      - From the detail page of your Twitter application, click the "Keys and Access Tokens" tab
-     - On this tab, you will already see the Consumer Key (API Key) and Consumer Secret (API Secret) values required by the app.
+     - On this tab, you will see the Consumer Key (API Key) and Consumer Secret (API Secret) values
      - Scroll down to the Access Token section and click "Create my access token"
-     - You will now have the Access Token and Access Token Secret values required by the app.
+     - You will now have the Access Token and Access Token Secret values required by the app
 
-2.  Store the keys as encrypted SecureString values in SSM Parameter Store. You can setup the required parameters via the AWS Console or using the following AWS CLI commands:
+2. Store the keys as encrypted SecureString values in SSM Parameter Store using the AWS Console or these AWS CLI commands:
    
  ```bash
 aws ssm put-parameter --name /twitter-event-source/consumer_key --value <your consumer key value> --type SecureString --overwrite
