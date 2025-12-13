@@ -4,6 +4,7 @@ import os
 import re
 import json
 import sys
+import time
 import boto3
 import base64
 import logging
@@ -59,9 +60,11 @@ def AddImage(url,tweet_id):
 @xray_recorder.capture('## Calling StepFunction')
 def CallStepFunction(tweet):
     client = boto3.client('stepfunctions') 
+    # Add timestamp to ensure unique execution names
+    execution_name = f"{tweet['tweet_id']}-{int(time.time() * 1000)}"
     response = client.start_execution(
         stateMachineArn=STATE_MACHINE_ARN,
-        name=tweet["tweet_id"],
+        name=execution_name,
         input=json.dumps(tweet)
     )
     AddImage(tweet["image_url"],tweet["tweet_id"])
@@ -69,37 +72,52 @@ def CallStepFunction(tweet):
 
 @metric_scope
 def handler(event, context, metrics):
+    """Process tweet batches from poller with improved error handling."""
     skipped_count = 0
     processed_count = 0
     no_image = 0
-    for rec in event:        
-        if "extended_entities" in rec:            
-            if "media" in rec["extended_entities"]:
-                for m in rec["extended_entities"]["media"]:
-                    if "media_url_https" in m:
-                        if m["type"] == "photo":
-                            dyn_resp = GetImage(m["media_url_https"])
-                            if dyn_resp["Count"] == 0:
-                                processed_count += 1
-                                CallStepFunction({'tweet_id': m["id_str"], 'full_text': rec["full_text"], 'image_url': m["media_url_https"]})
+    error_count = 0
+    
+    try:
+        for rec in event:
+            try:
+                if "extended_entities" in rec:            
+                    if "media" in rec["extended_entities"]:
+                        for m in rec["extended_entities"]["media"]:
+                            if "media_url_https" in m:
+                                if m["type"] == "photo":
+                                    dyn_resp = GetImage(m["media_url_https"])
+                                    if dyn_resp["Count"] == 0:
+                                        processed_count += 1
+                                        CallStepFunction({'tweet_id': m["id_str"], 'full_text': rec["full_text"], 'image_url': m["media_url_https"]})
+                                    else:
+                                        skipped_count += 1                            
+                                else:
+                                    no_image += 1
                             else:
-                                skipped_count += 1                            
-                        else:
-                            no_image += 1
+                                no_image += 1
                     else:
                         no_image += 1
-            else:
-                no_image += 1
-        else:
-            no_image += 1
+                else:
+                    no_image += 1
+            except Exception as e:
+                error_count += 1
+                logger.error(f"Error processing tweet {rec.get('id', 'unknown')}: {e}")
 
+        # Align metrics with poller namespace
+        metrics.set_namespace('XSentimentAnalysis')
+        metrics.put_metric("TweetsProcessed", len(event), "Count")
+        metrics.put_metric("ImagesIdentified", processed_count, "Count")
+        metrics.put_metric("ImagesSkipped", skipped_count, "Count")
+        metrics.put_metric("ProcessingErrors", error_count, "Count")
+        metrics.set_property("RequestId", context.aws_request_id)
+        metrics.set_property(
+            "payload", { "tweets": str(len(event)) ,"processed": processed_count, "skipped": skipped_count, "no_image": no_image, "errors": error_count }
+        )
 
-    metrics.set_namespace('TwitterRekognition')
-    metrics.put_metric("TweetsProcessed", len(event), "Count")
-    metrics.put_metric("ImagesIdentified", processed_count, "Count")
-    metrics.set_property("RequestId", context.aws_request_id)
-    metrics.set_property(
-        "payload", { "tweets": str(len(event)) ,"processed": processed_count, "skipped": skipped_count, "no_image": no_image }
-    )
-
-    return True
+        return True
+        
+    except Exception as e:
+        logger.error(f"Critical error in parser handler: {e}")
+        metrics.put_metric("CriticalErrors", 1, "Count")
+        raise

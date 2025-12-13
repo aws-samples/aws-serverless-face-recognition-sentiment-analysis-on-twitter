@@ -7,7 +7,7 @@ Globals:
     AutoPublishAlias: live
     Handler: index.handler
     MemorySize: 256
-    Runtime: python3.8
+    Runtime: python3.13
     Timeout: 120
     Tracing: Active
     Layers:
@@ -20,19 +20,20 @@ Parameters:
     Default: twitter-db
   SearchText:
     Type: String
-    Description: Non-URL-encoded search text poller should use when querying Twitter Search API.
+    Description: Non-URL-encoded search text poller should use when querying X API v2 Search endpoint.
     Default: selfie
   SSMParameterPrefix:
     Type: String
     Default: 'twitter-event-source'
     Description: >
-      This app assumes API keys needed to use the Twitter API are stored as SecureStrings in SSM Parameter Store under the prefix defined by
-      this parameter. See the app README for details.
-  PollingFrequencyInMinutes:
+      This app assumes the X API v2 Bearer Token needed to use the X API is stored as a SecureString in SSM Parameter Store under the prefix defined by
+      this parameter. The required parameter is: bearer_token. See the app README for details.
+  PollingFrequencyInHours:
     Type: Number
     MinValue: 1
-    Default: 10
-    Description: Frequency in minutes to poll for more tweets.
+    MaxValue: 24
+    Default: 12
+    Description: Frequency in hours to poll for more tweets. Default 12 hours (twice daily) for X API v2 rate limits.
   BatchSize:
     Type: Number
     MinValue: 1
@@ -40,7 +41,7 @@ Parameters:
     Description: Max number of tweets to send to the TweetProcessor lambda function on each invocation.
 
 Conditions:
-  IsPollingFrequencyInMinutesSingular: !Equals [!Ref PollingFrequencyInMinutes, 1]
+  IsPollingFrequencyInHoursSingular: !Equals [!Ref PollingFrequencyInHours, 1]
 
 
 Resources:
@@ -173,10 +174,10 @@ Resources:
       Description: requests awsxray emf
       ContentUri: ./layers/core
       CompatibleRuntimes:
-        - python3.8
+        - python3.13
       RetentionPolicy: Delete
     Metadata:
-      BuildMethod: python3.8
+      BuildMethod: python3.13
 
   PandasLayer:
     Type: AWS::Serverless::LayerVersion
@@ -184,10 +185,10 @@ Resources:
       Description: pandas numpy
       ContentUri: ./layers/pandas
       CompatibleRuntimes:
-        - python3.8
+        - python3.13
       RetentionPolicy: Delete
     Metadata:
-      BuildMethod: python3.8
+      BuildMethod: python3.13
 
   Poller:
     Type: AWS::Serverless::Function
@@ -217,7 +218,7 @@ Resources:
         Timer:
           Type: Schedule
           Properties:
-            Schedule: !If [IsPollingFrequencyInMinutesSingular, !Sub 'rate(${PollingFrequencyInMinutes} minute)', !Sub 'rate(${PollingFrequencyInMinutes} minutes)']
+            Schedule: !If [IsPollingFrequencyInHoursSingular, !Sub 'rate(${PollingFrequencyInHours} hour)', !Sub 'rate(${PollingFrequencyInHours} hours)']
 
   SearchCheckpoint:
     Type: AWS::Serverless::SimpleTable
@@ -379,7 +380,14 @@ Resources:
             ParameterName: !Ref SSMParameterPrefix
         - FirehoseCrudPolicy:
             DeliveryStreamName: "*"        
-        - ComprehendBasicAccessPolicy: {}
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+                - bedrock:Converse
+              Resource: 
+                - !Sub 'arn:aws:bedrock:${AWS::Region}::foundation-model/amazon.nova-2-lite-v1:0'
         - S3CrudPolicy:
             BucketName:
               !Ref Bucket

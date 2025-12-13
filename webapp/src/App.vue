@@ -2,7 +2,7 @@
   <div class="flex flex-wrap justify-content-around gap-3">
     <Card>
       <template #title>
-        Twitter Face detection/sentiment analysis app
+        X Face detection/sentiment analysis app
           </template>
           <template #subtitle>
             <span>This demo uses the AWS Reckognition's moderation feature, but occasionally inappropriate photos can appear.
@@ -17,7 +17,7 @@
           <Chart type="bar" :data="weekChartData" :options="barChartOptions" />
         </div>
         <div class="col-6">
-          <Chart type="line" :data="hourChartData" :options="lineChartOptions" />
+          <Chart type="line" :data="dayChartData" :options="lineChartOptions" />
         </div>
       </div>
           </template>
@@ -33,7 +33,7 @@
 
 <script>
 import ImageCard from "./components/ImageCard.vue"
-import moment from "moment";
+import dayjs from "dayjs";
 import axios from "axios";
 
 export default {
@@ -55,7 +55,7 @@ export default {
         "FEAR",
       ],
       emotion: null,
-      hourChartData: null,
+      dayChartData: null,
       weekChartData: null,
       yearChartData: null,
       lineChartOptions: null,
@@ -71,7 +71,7 @@ export default {
   async mounted() {
     try {
       await axios.get(this.baseUrl + "stat").then((results) => {
-        this.hourChartData = this.setDayChartData(results.data.days);
+        this.dayChartData = this.setDayChartData(results.data.days);
         this.weekChartData = this.setMonthChartData(results.data.month);
         this.yearChartData = this.setYearChartData(results.data.year);
         //console.log(results.data)

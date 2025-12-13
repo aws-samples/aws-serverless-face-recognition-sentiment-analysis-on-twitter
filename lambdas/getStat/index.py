@@ -52,10 +52,10 @@ class CWChartDataFactory:
         chart_3_key_list = []
 
         if group_name == 'days':
-            period = 300
-            days = 2
-            chart_options["chart_1_frequency"]="30T"
-            chart_options["chart_1_date_format"]="%d %H:%M"
+            period = 3600  # 1 hour periods for better daily aggregation
+            days = 7       # Show last 7 days instead of 2
+            chart_options["chart_1_frequency"]="D"      # Daily frequency
+            chart_options["chart_1_date_format"]="%b %d" # Format: "Dec 12"
         elif group_name == 'month':
             period = 1800
             days = 30

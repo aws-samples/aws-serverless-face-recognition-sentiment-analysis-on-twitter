@@ -1,3 +1,5 @@
-python-twitter
+tweepy>=4.14.0
 requests
 boto3
+aws-xray-sdk
+aws-embedded-metrics
